@@ -31,3 +31,52 @@ export default {
   margin-top: 100px;
 }
 </style>
+
+
+<template>
+  <!-- Same template as before -->
+</template>
+
+<script>
+// Same script as before
+</script>
+
+<style scoped>
+/* Login Form Styles */
+.login {
+  display: flex;
+}
+
+.login__input {
+  border: none;
+  padding: 0.5rem 2rem;
+  font-size: 1.6rem;
+  font-family: inherit;
+  text-align: center;
+  width: 12rem;
+  border-radius: 10rem;
+  margin-right: 1rem;
+  color: inherit;
+  border: 1px solid #fff;
+  transition: all 0.3s;
+}
+
+.login__input:focus {
+  outline: none;
+  border: 1px solid #ccc;
+}
+
+.login__btn {
+  border: none;
+  background: none;
+  font-size: 2.2rem;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.login__btn:hover,
+.login__btn:focus {
+  color: #777;
+}
+</style>
