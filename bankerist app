@@ -1,0 +1,59 @@
+Requirements (要件(やりたいこと))
+
+
+
+        
+      ☐ Challenge: Create your Bankerist App base from the resources in the udemy.
+
+
+        
+      Modify style. Each member should have different UI Design.
+
+        
+      Page should be responsive
+
+        
+      Features given in the resources should be 100% functional.
+
+
+        
+      displayMovements
+
+        
+      calcDisplayBalance
+
+        
+      calcDisplaySummary
+
+        
+      createUsernames
+
+        
+      Event Handlers (Sort, Login, Transfer, Loan and Close)
+
+        
+      Display current date and movement date
+
+        
+      Timer
+
+
+
+        
+      Movements can be sorted and unsorted
+
+        
+      Mounting vanilla js functions are not allowed.
+
+
+
+        
+      ☐ No console errors.
+
+        
+      ☐ Deliverables are being pushed to the git. Confirm by submitting Gitflow Screenshot in wiki
+
+        
+      Please refer to this link to download the resources: Bankerist App
+
+https://github.com/CodePapa360/Bankinst-app
