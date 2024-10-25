@@ -3,7 +3,7 @@
     <!-- TOP NAVIGATION -->
     <nav class="mdl-navigation">
       <p class="welcome">{{ welcomeMessage }}</p>
-      <img src="logo.png" alt="Logo" class="mdl-logo" />
+      <img src="" alt="Logo" class="mdl-logo" />
       <form class="login mdl-shadow--2dp" @submit.prevent="handleLogin">
         <input
           type="text"
