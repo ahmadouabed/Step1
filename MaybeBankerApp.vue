@@ -109,6 +109,7 @@
 
 <script>
 export default {
+  name: 'Bankerist',
   data() {
     return {
       loginUser: '',
