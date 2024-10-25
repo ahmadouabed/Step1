@@ -3,7 +3,7 @@
     <!-- TOP NAVIGATION -->
     <nav>
       <p class="welcome">{{ welcomeMessage }}</p>
-      <img src="logo.png" alt="Logo" class="logo" />
+      <img src="" alt="Logo" class="logo" />
       <form class="login" @submit.prevent="handleLogin">
         <input
           type="text"
