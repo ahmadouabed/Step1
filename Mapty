@@ -1,0 +1,65 @@
+Challenge: Create your Own Mapty App. 
+
+
+
+        
+      
+☐ App should be named creatively like "Mapty"
+
+
+        
+      
+☐ Display Map
+
+
+        
+      
+☐ User must be able to add workout in the map.
+
+
+        
+      
+☐ Added workout should display in the sidebar
+
+
+        
+      
+☐ Title Format: inputType + date(MMMM-DD): 
+
+
+
+        
+      
+☐ Migration should be done and should not be done by mounting vanilla js functions.
+
+
+        
+      
+☐ User should choose location first before entering input
+
+
+        
+      
+☐ Trigger to add workout should be the OK-Button or add button not key enter.
+
+
+        
+      
+☐ No console errors.
+
+
+        
+      
+☐ Deliverables are being pushed to the git. Confirm by submitting Gitflow Screenshot in wiki
+
+
+        
+      
+Trainees should have different UI.
+
+
+        
+      
+NOTE: Tip: Display map by installing leaflet: npm i leaflet. After that, in the index.html, paste the link: 
+
+
