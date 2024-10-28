@@ -1,0 +1,830 @@
+<template>
+  <b-container id="app">
+    <!-- TOP NAVIGATION -->
+
+    <b-card class="mt-3 py-2" v-if="!currentAccount">
+      <nav>
+        <p class="welcome">{{ welcomeMessage }}</p>
+        <img src="../../../assets/img/bank2.svg" alt="Logo" class="logo" />
+        <b-form class="login" @submit.prevent="handleLogin">
+          <b-form-input
+            type="text"
+            placeholder="user"
+            maxlength="2"
+            v-model="loginUser"
+            class="login__input login__input--user"
+          >
+          </b-form-input>
+          <b-form-input
+            type="password"
+            placeholder="PIN"
+            maxlength="4"
+            v-model="loginPin"
+            class="login__input login__input--pin"
+          ></b-form-input>
+          <button class="login__btn">&rarr;</button>
+        </b-form>
+      </nav>
+    </b-card>
+
+    <main class="app" v-if="currentAccount">
+      <!-- BALANCE -->
+
+      <div class="balance">
+        <div>
+          <p class="welcome">{{ welcomeMessage }}</p>
+          <p class="balance__label">{{ Labels.BANKERISTLABELS.balanceLabel }}</p>
+          <p class="balance__date">{{ Labels.BANKERISTLABELS.balanceDate }} {{ formattedDate }}</p>
+        </div>
+        <p class="balance__value">{{ formattedBalance }}</p>
+      </div>
+
+      <!-- MOVEMENTS -->
+      <div class="movements">
+        <div class="movements__row" v-for="(mov, index) in movementsArray" :key="index">
+          <div
+            class="movements__type"
+            :class="{
+              'movements__type--deposit': mov.amount > 0,
+              'movements__type--withdrawal': mov.amount < 0
+            }"
+          >
+            {{ movementsArray.length - index }} {{ mov.amount > 0 ? 'deposit' : 'withdrawal' }}
+          </div>
+          <div class="movements__date">{{ formatMovementDate(mov.date) }}</div>
+          <div class="movements__value">{{ formatCurrency(mov.amount) }}</div>
+        </div>
+      </div>
+
+      <!-- OPERATION: TRANSFER -->
+      <b-container class="operation operation--transfer">
+        <h2>{{ Labels.BANKERISTLABELS.h2Transfer }}</h2>
+        <form class="form form--transfer" @submit.prevent="transferMoney">
+          <input type="text" v-model="transferTo" class="form__input form__input--to" />
+          <input
+            type="number"
+            v-model.number="transferAmount"
+            class="form__input form__input--amount"
+          />
+          <button class="form__btn form__btn--transfer">&rarr;</button>
+          <label class="form__label">{{ Labels.BANKERISTLABELS.formLabelTransfer }}</label>
+          <label class="form__label">{{ Labels.BANKERISTLABELS.formLabelTransfer1 }}</label>
+        </form>
+      </b-container>
+
+      <!-- OPERATION: LOAN -->
+      <b-container class="operation operation--loan">
+        <h2>{{ Labels.BANKERISTLABELS.h2Loan }}</h2>
+        <form class="form form--loan" @submit.prevent="requestLoan">
+          <input
+            type="number"
+            v-model.number="loanAmount"
+            class="form__input form__input--loan-amount"
+          />
+          <button :disabled="btnDisable" class="form__btn form__btn--loan">&rarr;</button>
+          <label class="form__label form__label--loan">{{
+            Labels.BANKERISTLABELS.formLabelLoan
+          }}</label>
+        </form>
+      </b-container>
+
+      <!-- OPERATION: CLOSE ACCOUNT -->
+      <b-container class="operation operation--close">
+        <h2>{{ Labels.BANKERISTLABELS.closeAcc }}</h2>
+        <form class="form form--close" @submit.prevent="closeAccount">
+          <input type="text" v-model="closeUser" class="form__input form__input--user" />
+          <input
+            type="password"
+            v-model="closePin"
+            maxlength="4"
+            class="form__input form__input--pin"
+          />
+          <button class="form__btn form__btn--close">&rarr;</button>
+          <label class="form__label">{{ Labels.BANKERISTLABELS.confirmUser }}</label>
+          <label class="form__label">{{ Labels.BANKERISTLABELS.confirmPin }}</label>
+        </form>
+      </b-container>
+
+      <!-- SUMMARY -->
+      <b-card class="summary">
+        <b-row cols="3">
+          <b-col>
+            <p class="summary__label">{{ Labels.BANKERISTLABELS.summaryIn }}</p>
+            <p class="summary__value summary__value--in">
+              {{ formattedIncome }}
+            </p>
+          </b-col>
+
+          <b-col>
+            <p class="summary__label">{{ Labels.BANKERISTLABELS.summaryOut }}</p>
+            <p class="summary__value summary__value--out">
+              {{ formattedOut }}
+            </p>
+          </b-col>
+
+          <b-col>
+            <p class="summary__label">{{ Labels.BANKERISTLABELS.summaryInterest }}</p>
+            <p class="summary__value summary__value--interest">
+              {{ formattedInterest }}
+            </p>
+          </b-col>
+
+          <b-col>
+            <button class="btn--sort" @click="sortMovements">
+              &downarrow; {{ Labels.BANKERISTLABELS.sort }}
+            </button>
+          </b-col>
+        </b-row>
+      </b-card>
+
+      <!-- LOGOUT TIMER -->
+      <p class="logout-timer">
+        {{ Labels.BANKERISTLABELS.loggedOut }}
+        <span class="timer">{{ formattedTimer }}</span>
+      </p>
+
+      <b-button class="w-100 text-light" variant="info" @click="logOut">Log Out</b-button>
+    </main>
+  </b-container>
+</template>
+
+<script>
+import { BankeristData } from '@/StaticData/BankeristMemory'
+import { BANKERISTLABELS } from '@/common/recipe/rBankerist'
+
+export default {
+  name: 'Bankerist',
+  data() {
+    return {
+      loginUser: '',
+      loginPin: '',
+      currentAccount: null,
+      isLoggedIn: false,
+      isSorted: false,
+      timer: null,
+      timeRemaining: 300,
+      transferTo: '',
+      transferAmount: 0,
+      loanAmount: 0,
+      closeUser: '',
+      closePin: '',
+      movementsArray: [],
+      btnDisable: false,
+      accounts: [...BankeristData],
+      Labels: { BANKERISTLABELS }
+    }
+  },
+  computed: {
+    /**
+     * Function to display welcome message depending if User is logged In
+     * @return {string} - return literal string based on user is logged in
+     */
+
+    welcomeMessage() {
+      return this.isLoggedIn
+        ? `Welcome back, ${this.currentAccount.owner.split(' ')[0]}!`
+        : 'Log in to get started'
+    },
+
+    /**
+     * Function to return currentAccount
+     * @return {object} - return currentAccount
+     */
+
+    account() {
+      return this.currentAccount
+    },
+
+    /**
+     * Function to format balance of user and return the format currency based on the balance
+     * @return {string} - return formatCurrency
+     */
+    formattedBalance() {
+      if (!this.account) return '0€'
+      const balance = this.account.movements.reduce((acc, mov) => acc + mov, 0)
+      return this.formatCurrency(balance)
+    },
+
+    /**
+     * Function to sort movements
+     * @return {boolean} - return isSorted based on movs.sort
+     */
+
+    sortedMovements() {
+      const movs = [...this.currentAccount.movements]
+      return this.isSorted ? movs.sort((a, b) => a - b) : movs
+    },
+
+    /**
+     * Function to format income of user
+     * @return {string} - return formatCurrecncy based on incomes
+     */
+    formattedIncome() {
+      const incomes = this.account.movements
+        .filter((mov) => mov > 0)
+        .reduce((acc, mov) => acc + mov, 0)
+      return this.formatCurrency(incomes)
+    },
+
+    /**
+     * Function to format
+     * @return {string} - return formatCurrecncy based on variable out
+     */
+    formattedOut() {
+      const out = this.account.movements.filter((mov) => mov < 0).reduce((acc, mov) => acc + mov, 0)
+      return this.formatCurrency(Math.abs(out))
+    },
+
+    /**
+     * Function to compute the intereset of user
+     * @return {string} - return formatCurrecncy based on interest
+     */
+
+    formattedInterest() {
+      const interest = this.account.movements
+        .filter((mov) => mov > 0)
+        .map((deposit) => (deposit * this.account.interestRate) / 100)
+        .reduce((acc, int) => acc + int, 0)
+      return this.formatCurrency(interest)
+    },
+
+    /**
+     * Function to return the date
+     * @return {string} - return Intl.DateTimeFormat based on based on account.locale
+     */
+
+    formattedDate() {
+      const now = new Date()
+      return new Intl.DateTimeFormat(this.account.locale, {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(now)
+    },
+
+    /**
+     * Function to return the remating time in timer
+     * @return {string} - returns the minutes and seconds
+     */
+
+    formattedTimer() {
+      const min = String(Math.floor(this.timeRemaining / 60)).padStart(2, '0')
+      const sec = String(this.timeRemaining % 60).padStart(2, '0')
+      return `${min}:${sec}`
+    },
+
+    /**
+     * Function to return the current balance basec on its movements
+     * @return {number} - Function to return the
+     */
+
+    currentBalance() {
+      return this.currentAccount.movements.reduce((acc, mov) => acc + mov, 0)
+    }
+  },
+  methods: {
+    /**
+     * Function to verify login of User and Sort the date by descending order
+     */
+
+    handleLogin() {
+      const account = this.accounts.find(
+        (acc) =>
+          acc.owner
+            .toLowerCase()
+            .split(' ')
+            .map((name) => name[0])
+            .join('') === this.loginUser
+      )
+      if (account?.pin === +this.loginPin) {
+        this.currentAccount = account
+        this.startLogOutTimer()
+      } else {
+        alert('Invalid login credentials')
+      }
+
+      if (this.currentAccount) {
+        this.movementsArray = this.currentAccount.movements
+          .map((mov, i) => ({
+            amount: mov,
+            date: this.currentAccount.movementsDates[i]
+          }))
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+        this.isLoggedIn = true
+
+        console.log('Login successful!', this.currentAccount)
+      }
+    },
+
+    /**
+     * Function to get the movement paremeter and return it in its class (deposit) if true and false (withdrawal)
+     * @param {number} movement - movement variable
+     * @return {number} - returns the movement variable depending on its number value
+     */
+
+    movementType(movement) {
+      return movement > 0 ? 'movements__type--deposit' : 'movements__type--withdrawal'
+    },
+
+    /**
+     * Function to format the movement date based on dayspassed
+     * @param {string} dateString - gets the movement date
+     * @return {string} - returns the dayspassed variable or date in the account.locale
+     */
+
+    formatMovementDate(dateString) {
+      const date = new Date(dateString)
+      const daysPassed = Math.floor((new Date() - date) / (1000 * 60 * 60 * 24))
+      if (daysPassed === 0) return 'Today'
+      if (daysPassed === 1) return 'Yesterday'
+      return daysPassed <= 7
+        ? `${daysPassed} days ago`
+        : new Intl.DateTimeFormat(this.account.locale).format(date)
+    },
+
+    /**
+     * Function to format the currency based on the value of movement
+     * @param {number} value - to the parameter of movement value
+     * @return {number} - returns the movement value
+     */
+
+    formatCurrency(value) {
+      return new Intl.NumberFormat(this.currentAccount.locale, {
+        style: 'currency',
+        currency: this.currentAccount.currency
+      }).format(value)
+    },
+
+    /**
+     * Function to sort the movements of the movements array
+     * @return {boolean} - return if user is not logged In
+     */
+
+    sortMovements() {
+      if (!this.isLoggedIn) return
+
+      if (!this.isSorted) {
+        this.movementsArray.sort((a, b) => b.amount - a.amount)
+      } else {
+        this.movementsArray.sort((a, b) => new Date(b.date) - new Date(a.date))
+      }
+
+      this.isSorted = !this.isSorted
+    },
+
+    /**
+     * Function to start the logout timer
+     */
+
+    startLogOutTimer() {
+      if (this.timer) clearInterval(this.timer)
+      this.timeRemaining = 300
+      this.timer = setInterval(() => {
+        this.timeRemaining--
+        if (this.timeRemaining === 0) {
+          clearInterval(this.timer)
+          this.currentAccount = null
+          this.isLoggedIn = false
+        }
+      }, 1000)
+    },
+
+    /**
+     *Fucntion to transfer money and ensure that recepient is existing and has enought balance. Prevent also to transfer to own account
+     */
+
+    transferMoney() {
+      const receiverAcc = this.accounts.find(
+        (acc) =>
+          acc.owner
+            .toLowerCase()
+            .split(' ')
+            .map((name) => name[0])
+            .join('') === this.transferTo
+      )
+
+      if (
+        receiverAcc &&
+        this.transferAmount > 0 &&
+        this.currentBalance >= this.transferAmount &&
+        receiverAcc !== this.currentAccount
+      ) {
+        this.currentAccount.movements.push(-this.transferAmount)
+        receiverAcc.movements.push(this.transferAmount)
+        this.currentAccount.movementsDates.push(new Date().toISOString())
+        receiverAcc.movementsDates.push(new Date().toISOString())
+        this.transferAmount = 0
+        this.transferTo = ''
+        this.updateUI()
+        alert('Transfer successful')
+      } else {
+        alert('Invalid transfer details, Please Input Correct Username')
+      }
+    },
+
+    /**
+     * Function to request loan. Loan must be greater than 0
+     */
+
+    requestLoan() {
+      if (
+        this.loanAmount > 0 &&
+        this.currentAccount.movements.some((mov) => mov >= (this.loanAmount * 10) / 100)
+      ) {
+        setTimeout(() => {
+          this.currentAccount.movements.push(this.loanAmount)
+          this.currentAccount.movementsDates.push(new Date().toISOString())
+          this.loanAmount = 0
+          this.updateUI()
+          this.btnDisable = false
+          alert('Loan approved')
+        }, 1500)
+        this.btnDisable = true
+      } else {
+        alert('Loan request denied')
+      }
+    },
+
+    /**
+     * Function to delete the user account and log out from bankerist
+     */
+
+    closeAccount() {
+      if (this.closeUser === this.loginUser && +this.closePin === this.currentAccount.pin) {
+        const index = this.accounts.findIndex(
+          (acc) => acc.username === this.currentAccount.username
+        )
+        this.accounts.splice(index, 1)
+        this.currentAccount = null
+        this.isLoggedIn = false
+        this.loginUser = ''
+        this.loginPin = ''
+        alert('Account closed')
+      } else {
+        alert('Incorrect details')
+      }
+    },
+
+    /**
+     * Function to logout
+     */
+    logOut() {
+      const logout = confirm('Are you sure you want log Out?')
+      if (logout) this.currentAccount = null
+      this.isLoggedIn = false
+    },
+
+    /**
+     * Function to update the bankerist app
+     */
+
+    updateUI() {
+      this.movementsArray = this.currentAccount.movements.map((amount, index) => ({
+        amount,
+        date: this.currentAccount.movementsDates[index]
+      }))
+
+      this.$forceUpdate()
+    }
+  }
+}
+</script>
+
+<style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: inherit;
+}
+
+html {
+  font-size: 62.5%;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #444;
+  background-color: #f3f3f3;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+}
+
+.welcome {
+  font-size: 2.5rem;
+  font-weight: 500;
+}
+
+.logo {
+  height: 5.25rem;
+}
+
+.login {
+  display: flex;
+}
+
+.login__input {
+  padding: 0.5rem 2rem;
+
+  font-family: inherit;
+  text-align: center;
+
+  border-radius: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  margin-right: 1rem;
+  color: inherit;
+  border: 1px solid #929292;
+  transition: all 0.3s;
+}
+
+.login__input:focus {
+  border: 1px solid #ccc;
+}
+
+.login__input::placeholder {
+  color: #bbb;
+}
+
+.login__btn {
+  border: none;
+  background: none;
+  font-size: 2.2rem;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.login__btn:hover,
+.login__btn:focus,
+.btn--sort:hover,
+.btn--sort:focus {
+  outline: none;
+  color: #777;
+}
+
+.app {
+  position: relative;
+  max-width: 100rem;
+  margin: 4rem auto;
+  display: grid;
+  grid-template-columns: 4fr 3fr;
+  grid-template-rows: auto repeat(3, 15rem) auto;
+  gap: 2rem;
+}
+
+.balance {
+  grid-column: 1 / span 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.balance__label {
+  font-size: 2rem;
+  font-weight: 500;
+  margin-bottom: -0.2rem;
+}
+
+.balance__date {
+  font-size: 1rem;
+  color: #888;
+}
+
+.balance__value {
+  font-size: 2.5rem;
+  font-weight: 500;
+}
+
+.movements {
+  grid-row: 2 / span 3;
+  background-color: #fff;
+  border-radius: 1rem;
+  overflow: scroll;
+}
+
+.movements__row {
+  padding: 2.25rem 4rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}
+
+.movements__type {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #fff;
+  padding: 0.1rem 1rem;
+
+  border-radius: 0.5rem;
+  margin-right: 2rem;
+}
+
+.movements__date {
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: #666;
+}
+
+.movements__type--deposit {
+  background-image: linear-gradient(to top left, #39b385, #0fa365);
+}
+
+.movements__type--withdrawal {
+  background-image: linear-gradient(to top left, #d7e241, #a7b620);
+}
+
+.movements__value {
+  font-size: 1.7rem;
+  margin-left: auto;
+}
+
+.summary {
+  display: flex;
+
+  padding: 0 0.3rem;
+  margin-top: 1rem;
+}
+
+.summary__label {
+  font-size: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-right: 0.8rem;
+}
+
+.summary__value {
+  font-size: 1.5rem;
+}
+
+.summary__value--in,
+.summary__value--interest {
+  color: #66c873;
+}
+
+.summary__value--out {
+  color: #f5465d;
+}
+
+.btn--sort {
+  margin-left: auto;
+  border: none;
+  background: none;
+  font-size: 1.3rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* OPERATIONS */
+.operation {
+  border-radius: 1rem;
+  padding: 3rem 4rem;
+  color: #333;
+}
+
+.operation--transfer {
+  background-image: linear-gradient(to top left, #0fe3eb, #7392e0);
+}
+
+.operation--loan {
+  background-image: linear-gradient(to top left, #249762, #49d292);
+}
+
+.operation--close {
+  background-image: linear-gradient(to top left, #a7b620, #e8f79a);
+}
+
+h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 2.5fr 2.5fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.4rem 1rem;
+}
+
+/* Exceptions for interst */
+.form.form--loan {
+  grid-template-columns: 2.5fr 1fr 2.5fr;
+}
+
+.form__label--loan {
+  grid-row: 2;
+}
+
+.form__input {
+  width: 100%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.4);
+  font-family: inherit;
+  font-size: 1.5rem;
+  text-align: center;
+  color: #333;
+  padding: 0.3rem 1rem;
+  border-radius: 0.7rem;
+  transition: all 0.3s;
+}
+
+.form__input:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.form__label {
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.form__btn {
+  border: none;
+  border-radius: 0.7rem;
+  font-size: 1.8rem;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.form__btn:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.logout-timer {
+  padding: 0 0.3rem;
+  margin-top: 1.9rem;
+  text-align: right;
+  font-size: 1.25rem;
+}
+
+.timer {
+  font-weight: 600;
+}
+
+@media (max-width: 1200px) {
+  html {
+    font-size: 55%;
+  }
+  nav {
+    flex-direction: column;
+  }
+
+  .app {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+  }
+
+  .balance {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .balance__value {
+    font-size: 3rem;
+  }
+
+  .movements__row {
+    padding: 1rem;
+  }
+
+  .summary {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logout-timer {
+    text-align: center;
+  }
+}
+
+@media (max-width: 440px) {
+  .movements__row {
+    flex-direction: column;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .movements__type {
+    margin: unset;
+  }
+
+  .movements__value {
+    margin: auto;
+  }
+}
+</style>
