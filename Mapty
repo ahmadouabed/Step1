@@ -1,65 +1,295 @@
-Challenge: Create your Own Mapty App. 
+<template>
+  <div id="app">
+    <div class="sidebar">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <div class="custom__btns" :class="{ hidden: !showReset }">
+        <button class="custom__btn btn--reset" @click="resetWorkouts">
+          Remove all
+        </button>
+      </div>
+      <ul class="workouts">
+        <form
+          class="form"
+          :class="{ hidden: !showForm }"
+          @submit.prevent="addWorkout"
+        >
+          <div class="form__row">
+            <label class="form__label">Type</label>
+            <select
+              class="form__input form__input--type"
+              v-model="inputType"
+              @change="toggleElevationField"
+            >
+              <option value="running">Running</option>
+              <option value="cycling">Cycling</option>
+            </select>
+          </div>
+          <div class="form__row">
+            <label class="form__label">Distance</label>
+            <input
+              class="form__input form__input--distance"
+              placeholder="km"
+              v-model.number="inputDistance"
+            />
+          </div>
+          <div class="form__row">
+            <label class="form__label">Duration</label>
+            <input
+              class="form__input form__input--duration"
+              placeholder="min"
+              v-model.number="inputDuration"
+            />
+          </div>
+          <div class="form__row" v-if="inputType === 'running'">
+            <label class="form__label">Cadence</label>
+            <input
+              class="form__input form__input--cadence"
+              placeholder="step/min"
+              v-model.number="inputCadence"
+            />
+          </div>
+          <div class="form__row form__row--hidden" v-else>
+            <label class="form__label">Elev Gain</label>
+            <input
+              class="form__input form__input--elevation"
+              placeholder="meters"
+              v-model.number="inputElevation"
+            />
+          </div>
+          <button class="form__btn" @click="addWorkout">OK</button>
+        </form>
+      </ul>
+      <p class="copyright">
+        &copy; 2023 - Mapty App - Vue Conversion by You. Use for learning or
+        portfolio.
+      </p>
+    </div>
+    <div id="map"></div>
+  </div>
+</template>
+
+<script>
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+export default {
+  name: "App",
+  data() {
+    return {
+      map: null,
+      mapZoomLevel: 13,
+      mapEvent: null,
+      workouts: [],
+      inputType: "running",
+      inputDistance: 0,
+      inputDuration: 0,
+      inputCadence: 0,
+      inputElevation: 0,
+      showForm: false,
+      showReset: false,
+      months: [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ],
+    };
+  },
+  mounted() {
+    this.getPosition();
+    this.getLocalStorage();
+  },
+  methods: {
+    getPosition() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          this.loadMap,
+          () => alert("Could not get your position!")
+        );
+      }
+    },
+    loadMap(position) {
+      const { latitude, longitude } = position.coords;
+      this.map = L.map("map").setView([latitude, longitude], this.mapZoomLevel);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(
+        this.map
+      );
+      this.map.on("click", this.showForm);
+      this.workouts.forEach(this.renderWorkoutMarker);
+    },
+    showForm(e) {
+      this.mapEvent = e;
+      this.showForm = true;
+    },
+    hideForm() {
+      this.inputDistance = this.inputDuration = this.inputCadence = this.inputElevation = 0;
+      this.showForm = false;
+    },
+    toggleElevationField() {
+      this.inputCadence = this.inputElevation = 0;
+    },
+    addWorkout() {
+      const isValid = (...inputs) =>
+        inputs.every((inp) => Number.isFinite(inp) && inp > 0);
+
+      let workout;
+      if (this.inputType === "running" && isValid(this.inputDistance, this.inputDuration, this.inputCadence)) {
+        workout = this.createRunningWorkout();
+      } else if (this.inputType === "cycling" && isValid(this.inputDistance, this.inputDuration)) {
+        workout = this.createCyclingWorkout();
+      } else {
+        return alert("Invalid input");
+      }
+      this.workouts.push(workout);
+      this.renderWorkoutMarker(workout);
+      this.setLocalStorage();
+      this.showReset = true;
+      this.hideForm();
+    },
+    createRunningWorkout() {
+      const { lat, lng } = this.mapEvent.latlng;
+      return {
+        id: Date.now(),
+        coords: [lat, lng],
+        distance: this.inputDistance,
+        duration: this.inputDuration,
+        cadence: this.inputCadence,
+        type: "running",
+        description: this.formatDescription("running"),
+      };
+    },
+    createCyclingWorkout() {
+      const { lat, lng } = this.mapEvent.latlng;
+      return {
+        id: Date.now(),
+        coords: [lat, lng],
+        distance: this.inputDistance,
+        duration: this.inputDuration,
+        elevationGain: this.inputElevation,
+        type: "cycling",
+        description: this.formatDescription("cycling"),
+      };
+    },
+    formatDescription(type) {
+      const date = new Date();
+      return `${type.charAt(0).toUpperCase() + type.slice(1)} on ${
+        this.months[date.getMonth()]
+      } ${String(date.getDate()).padStart(2, "0")}`;
+    },
+    renderWorkoutMarker(workout) {
+      const popup = L.popup({
+        maxWidth: 250,
+        minWidth: 100,
+        autoClose: false,
+        closeOnClick: false,
+        className: `${workout.type}-popup`,
+      });
+      L.marker(workout.coords)
+        .addTo(this.map)
+        .bindPopup(popup)
+        .setPopupContent(
+          `${workout.type === "running" ? "🏃" : "🚴"} ${workout.description}`
+        )
+        .openPopup();
+    },
+    resetWorkouts() {
+      localStorage.removeItem("workouts");
+      this.workouts = [];
+      this.showReset = false;
+    },
+    setLocalStorage() {
+      localStorage.setItem("workouts", JSON.stringify(this.workouts));
+    },
+    getLocalStorage() {
+      const data = JSON.parse(localStorage.getItem("workouts"));
+      if (data) {
+        this.workouts = data;
+        this.showReset = true;
+      }
+    },
+  },
+};
+</script>
+
+<style scoped>
+@import "style.css";
+/* Add additional custom styles as needed */
+</style>
 
 
 
-        
-      
-☐ App should be named creatively like "Mapty"
+
+-----------------------------------
 
 
-        
-      
-☐ Display Map
+1. Install Leaflet
+Run this command in your project directory:
+
+bash
+Copy code
+npm install leaflet
+This will download Leaflet into your node_modules folder, allowing you to import it directly into your Vue component.
+
+2. Verify Imports
+Once installed, you should see the leaflet package in node_modules. The import statements:
+
+javascript
+Copy code
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+will correctly import both the JavaScript functionality (L) and the CSS styles for the map.
+
+3. Using in App.vue
+In your Vue component, these imports should work without additional configuration, as Vue CLI handles module resolution for npm-installed packages.
+
+This setup should ensure that Leaflet’s functionality and styles are correctly included in your project. Let me know if you run into any issues with the import!
 
 
-        
-      
-☐ User must be able to add workout in the map.
-
-
-        
-      
-☐ Added workout should display in the sidebar
-
-
-        
-      
-☐ Title Format: inputType + date(MMMM-DD): 
 
 
 
-        
-      
-☐ Migration should be done and should not be done by mounting vanilla js functions.
 
+You said:
+Im using Vite in vue, will this work?
+ChatGPT said:
+ChatGPT
+Memory updated
+Yes, using Leaflet with Vite should work smoothly, but Vite requires a slight adjustment for handling CSS imports with certain libraries like Leaflet. Here’s how to set it up:
 
-        
-      
-☐ User should choose location first before entering input
+1. Install Leaflet
+Run:
 
+bash
+Copy code
+npm install leaflet
+2. Import Leaflet in Your Component
+In your App.vue (or any other component where you’re using Leaflet), you can directly import both the JavaScript and CSS:
 
-        
-      
-☐ Trigger to add workout should be the OK-Button or add button not key enter.
+javascript
+Copy code
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+3. Resolve CSS Issue (if any)
+If you notice any issues with the Leaflet icons not displaying (a common issue in Vite), you might need to specify the icon paths manually, like this:
 
+javascript
+Copy code
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
-        
-      
-☐ No console errors.
-
-
-        
-      
-☐ Deliverables are being pushed to the git. Confirm by submitting Gitflow Screenshot in wiki
-
-
-        
-      
-Trainees should have different UI.
-
-
-        
-      
-NOTE: Tip: Display map by installing leaflet: npm i leaflet. After that, in the index.html, paste the link: 
-
-
+// Fixing icon paths for Vite
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: new URL("leaflet/dist/images/marker-icon-2x.png", import.meta.url).href,
+  iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).href,
+  shadowUrl: new URL("leaflet/dist/images/marker-shadow.png", import.meta.url).href,
+});
+This ensures Leaflet’s markers display correctly in Vite by loading the icon assets via import.meta.url.
