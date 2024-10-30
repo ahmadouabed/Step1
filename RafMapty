@@ -1,0 +1,630 @@
+<template>
+  <div class="rafty">
+    <div class="sidebar">
+      <h1 class="text-center my-3">Rafty</h1>
+
+      <ul class="workouts">
+        <form class="form hidden" v-if="form" @submit.prevent="newWorkout">
+          <div class="form__row">
+            <label class="form__label">Type</label>
+            <b-form-select
+              class="form__input form__input--type"
+              @change="toggleElevation = !toggleElevation"
+              v-model="selected"
+              :options="options"
+            ></b-form-select>
+          </div>
+          <div class="form__row">
+            <label class="form__label">Distance</label>
+            <!-- <input class="form__input form__input--distance" placeholder="km" /> -->
+            <b-form-input
+              class="form__input form__input--distance"
+              placeholder="km"
+              v-model="distance"
+              type="number"
+            ></b-form-input>
+          </div>
+          <div class="form__row">
+            <label class="form__label">Duration</label>
+            <!-- <input class="form__input form__input--duration" placeholder="min" /> -->
+            <b-form-input
+              class="form__input form__input--duration"
+              placeholder="min"
+              v-model="duration"
+              type="number"
+            ></b-form-input>
+          </div>
+
+          <div class="form__row" v-if="!toggleElevation">
+            <label class="form__label">Cadence</label>
+            <!-- <input class="form__input form__input--cadence" placeholder="step/min" /> -->
+            <b-form-input
+              class="form__input form__input--cadence"
+              placeholder="step/min"
+              v-model="cadence"
+              type="number"
+            ></b-form-input>
+          </div>
+          <div class="form__row" v-if="toggleElevation">
+            <label class="form__label">Elev Gain</label>
+            <!-- <input class="form__input form__input--elevation" placeholder="meters" /> -->
+            <b-form-input
+              class="form__input form__input--elevation"
+              placeholder="meters"
+              v-model="elevation"
+              type="number"
+            ></b-form-input>
+          </div>
+          <button class="form__btn">OK</button>
+        </form>
+
+        <li
+          class="workout"
+          data-id="1234567890"
+          v-for="workout in workouts"
+          :key="workout.id"
+          :class="`workout--${workout.type}`"
+          @click="focusOnWorkout(workout.id)"
+        >
+          <h2 class="workout__title">{{ workout.description }}</h2>
+          <div class="workout__details">
+            <span class="workout__icon">{{ workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️' }}</span>
+            <span class="workout__value">{{ workout.distance }}</span>
+            <span class="workout__unit">km</span>
+          </div>
+          <div class="workout__details">
+            <span class="workout__icon">⏱</span>
+            <span class="workout__value">{{ workout.duration }}</span>
+            <span class="workout__unit">min</span>
+          </div>
+
+          <div v-if="workout.type === 'running'" class="workout__details">
+            <span class="workout__icon">⚡️</span>
+            <span class="workout__value">{{ workout.pace.toFixed(1) }}</span>
+            <span class="workout__unit">min/km</span>
+          </div>
+          <div v-if="workout.type === 'running'" class="workout__details">
+            <span class="workout__icon">🦶🏼</span>
+            <span class="workout__value">{{ workout.cadence }}</span>
+            <span class="workout__unit">spm</span>
+          </div>
+          <div v-if="workout.type === 'cycling'" class="workout__details">
+            <span class="workout__icon">⚡️</span>
+            <span class="workout__value">{{ workout.speed.toFixed(1) }}</span>
+            <span class="workout__unit">km/h</span>
+          </div>
+          <div v-if="workout.type === 'cycling'" class="workout__details">
+            <span class="workout__icon">⛰</span>
+            <span class="workout__value">{{ workout.elevationGain }}</span>
+            <span class="workout__unit">m</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div id="map"></div>
+  </div>
+</template>
+<script>
+import { Running, Cycling, Workout } from '@/common/recipe/rMapty'
+
+export default {
+  name: 'Mapty',
+  data() {
+    return {
+      form: false,
+      selected: 'running',
+      options: [
+        { value: 'running', text: 'Running' },
+        { value: 'cycling', text: 'Cycling' }
+      ],
+      distance: null,
+      duration: null,
+      cadence: null,
+      elevation: null,
+      map: null,
+      mapZoomLevel: 13,
+      mapEvent: null,
+      toggleElevation: false,
+      workouts: []
+    }
+  },
+  mounted() {
+    this.getPosition()
+  },
+  methods: {
+    loadMap(position) {
+      const { latitude } = position.coords
+      const { longitude } = position.coords
+      // console.log(`https://www.google.pt/maps/@${latitude},${longitude}`);
+
+      const coords = [latitude, longitude]
+
+      this.map = L.map('map').setView(coords, this.mapZoomLevel)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(this.map)
+
+      //   Handling clicks on map
+      this.map.on('click', this.showForm.bind(this))
+
+      this.workouts.forEach((work) => {
+        this.renderWorkoutMarker(work)
+      })
+    },
+    getPosition() {
+      if (navigator.geolocation)
+        navigator.geolocation.getCurrentPosition(this.loadMap.bind(this), function () {
+          alert('Could not get your position')
+        })
+    },
+    showForm(mapE) {
+      this.mapEvent = mapE
+      this.form = true
+    },
+    hideForm() {
+      // Empty inputs
+      this.distance = null
+      this.duration = null
+      this.cadence = null
+      this.elevation = null
+      this.selected = null
+      this.form = false
+    },
+    renderWorkoutMarker(workout) {
+      L.marker(workout.coords)
+        .addTo(this.map)
+        .bindPopup(
+          L.popup({
+            maxWidth: 250,
+            minWidth: 100,
+            autoClose: false,
+            closeOnClick: false,
+            className: `${workout.type}-popup`
+          })
+        )
+        .setPopupContent(`${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`)
+        .openPopup()
+    },
+    newWorkout(e) {
+      const validInputs = (...inputs) => inputs.every((inp) => Number.isFinite(inp))
+      const allPositive = (...inputs) => inputs.every((inp) => inp > 0)
+
+      e.preventDefault()
+
+      // Get data from form
+      const type = this.selected
+      const distance = +this.distance
+      const duration = +this.duration
+      const { lat, lng } = this.mapEvent.latlng
+      let workout
+
+      // If workout running, create running object
+      if (type === 'running') {
+        const cadence = +this.cadence
+
+        // Check if data is valid
+        if (
+          // !Number.isFinite(distance) ||
+          // !Number.isFinite(duration) ||
+          // !Number.isFinite(cadence)
+          !validInputs(distance, duration, cadence) &&
+          !allPositive(distance, duration, cadence)
+        )
+          return alert('Inputs have to be positive numbers!')
+
+        workout = new Running([lat, lng], distance, duration, cadence)
+      }
+
+      // If workout cycling, create cycling object
+      if (type === 'cycling') {
+        const elevation = +this.elevation
+
+        if (!validInputs(distance, duration, elevation) || !allPositive(distance, duration))
+          return alert('Inputs have to be positive numbers!')
+
+        workout = new Cycling([lat, lng], distance, duration, elevation)
+      }
+
+      // Add new object to workout array
+      this.workouts.push(workout)
+      console.log('workoutArray', this.workouts)
+      // Render workout on map as marker
+      this.renderWorkoutMarker(workout)
+
+      // Render workout on list
+      //   this.renderWorkout(workout)
+
+      // Hide form + clear input fields
+      this.hideForm()
+
+      // Set local storage to all workouts
+      //   this.setLocalStorage()
+    },
+    focusOnWorkout(workoutId) {
+      if (!this.map) return
+
+      const workout = this.workouts.find((work) => work.id === workoutId)
+      this.map.setView(workout.coords, 13, {
+        animate: true,
+        pan: {
+          duration: 1
+        }
+      })
+    }
+  }
+}
+</script>
+
+<style scoped>
+.rafty {
+  font-family: 'Manrope', sans-serif;
+  color: var(--color-light--2);
+  font-weight: 400;
+  line-height: 1.6;
+  height: 100vh;
+  overscroll-behavior-y: none;
+
+  background-color: #fff;
+
+  display: flex;
+}
+
+/* GENERAL */
+a:link,
+a:visited {
+  color: var(--color-brand--1);
+}
+
+/* SIDEBAR */
+.sidebar {
+  flex-basis: 50rem;
+  background-color: var(--color-dark--1);
+  padding: 3rem 5rem 4rem 5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  height: 5.2rem;
+  align-self: center;
+  margin-bottom: 4rem;
+}
+
+.workouts {
+  list-style: none;
+  height: 77vh;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.workouts::-webkit-scrollbar {
+  width: 0;
+}
+
+.workout {
+  background-color: var(--color-dark--2);
+  border-radius: 5px;
+  padding: 1.5rem 2.25rem;
+  margin-bottom: 1.75rem;
+  cursor: pointer;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 0.75rem 1.5rem;
+}
+.workout--running {
+  border-left: 5px solid var(--color-brand--2);
+}
+.workout--cycling {
+  border-left: 5px solid var(--color-brand--1);
+}
+
+.workout__title {
+  font-size: 1.7rem;
+  font-weight: 600;
+  grid-column: 1 / 4;
+}
+
+.workout__btns {
+  grid-column: 4 / -1;
+  display: flex;
+  justify-content: space-between;
+}
+
+.workout__btn {
+  padding: 0.4rem 0.5rem;
+  font-size: 1.8rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.workout__btn--delete {
+  color: #ff2626;
+}
+
+.workout__btn--edit {
+  color: #00e77b;
+}
+
+.workout__details {
+  display: flex;
+  align-items: baseline;
+}
+
+.workout__icon {
+  font-size: 1.8rem;
+  margin-right: 0.2rem;
+  height: 0.28rem;
+}
+
+.workout__value {
+  font-size: 1.5rem;
+  margin-right: 0.5rem;
+}
+
+.workout__unit {
+  font-size: 1.1rem;
+  color: var(--color-light--1);
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.form {
+  background-color: var(--color-dark--2);
+  border-radius: 5px;
+  padding: 1.5rem 2.75rem;
+  margin-bottom: 1.75rem;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 2.5rem;
+
+  /* Match height and activity boxes */
+  height: 9.25rem;
+  transition:
+    all 0.5s,
+    transform 1ms;
+}
+
+/* .form.hidden {
+  transform: translateY(-30rem);
+  height: 0;
+  padding: 0 2.25rem;
+  margin-bottom: 0;
+  opacity: 0;
+} */
+
+.form__row {
+  display: flex;
+  align-items: center;
+}
+
+.form__row--hidden {
+  display: none;
+}
+
+.form__label {
+  flex: 0 0 50%;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.form__input {
+  width: 100%;
+  padding: 0.3rem 1.1rem;
+  font-family: inherit;
+  font-size: 1.4rem;
+  border: none;
+  border-radius: 3px;
+  background-color: var(--color-light--3);
+  transition: all 0.2s;
+}
+
+.form__input:focus {
+  outline: none;
+  background-color: #fff;
+}
+
+.form__btn {
+  display: none;
+}
+
+/* .copyright {
+  margin-top: auto;
+  font-size: 1.3rem;
+  text-align: center;
+  color: var(--color-light--1);
+}
+
+.twitter-link:link,
+.twitter-link:visited {
+  color: var(--color-light--1);
+  transition: all 0.2s;
+}
+
+.twitter-link:hover,
+.twitter-link:active {
+  color: var(--color-light--2);
+} */
+
+/* MAP */
+#map {
+  flex: 1;
+  height: 100%;
+  background-color: var(--color-light--1);
+}
+
+/* Popup width is defined in JS using options */
+.leaflet-popup .leaflet-popup-content-wrapper {
+  background-color: var(--color-dark--1);
+  color: var(--color-light--2);
+  border-radius: 5px;
+  padding-right: 0.6rem;
+}
+
+.leaflet-popup .leaflet-popup-content {
+  font-size: 1.5rem;
+}
+
+.leaflet-popup .leaflet-popup-tip {
+  background-color: var(--color-dark--1);
+}
+
+.running-popup .leaflet-popup-content-wrapper {
+  border-left: 5px solid var(--color-brand--2);
+}
+.cycling-popup .leaflet-popup-content-wrapper {
+  border-left: 5px solid var(--color-brand--1);
+}
+
+/* ======================= */
+/* Custom button design */
+.custom__btns {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+}
+
+.custom__btn {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 1.3rem;
+  background-color: var(--color-red);
+  color: var(--color-light--2);
+  border: none;
+  border-radius: 5px;
+}
+
+.custom__btns.hidden {
+  transform: translateY(-30rem);
+  height: 0;
+  padding: 0 2.25rem;
+  margin-bottom: 0;
+  opacity: 0;
+}
+
+@media (max-width: 1200px) {
+  .rafty {
+    flex-direction: column;
+    flex-direction: column-reverse;
+  }
+
+  .logo {
+    margin-bottom: 1rem;
+  }
+
+  .sidebar {
+    height: 55%;
+    flex-basis: auto;
+    padding: 1rem;
+  }
+}
+</style>
+---------
+class Workout {
+  date = new Date()
+  id = (Date.now() + '').slice(-10)
+  clicks = 0
+
+  constructor(coords, distance, duration) {
+    // this.date = ...
+    // this.id = ...
+    this.coords = coords // [lat, lng]
+    this.distance = distance // in km
+    this.duration = duration // in min
+  }
+
+  _setDescription() {
+    // prettier-ignore
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
+      months[this.date.getMonth()]
+    } ${this.date.getDate()}`
+  }
+
+  click() {
+    this.clicks++
+  }
+}
+
+class Running extends Workout {
+  type = 'running'
+
+  constructor(coords, distance, duration, cadence) {
+    super(coords, distance, duration)
+    this.cadence = cadence
+    this.calcPace()
+    this._setDescription()
+  }
+
+  calcPace() {
+    // min/km
+    this.pace = this.duration / this.distance
+    return this.pace
+  }
+}
+
+class Cycling extends Workout {
+  type = 'cycling'
+
+  constructor(coords, distance, duration, elevationGain) {
+    super(coords, distance, duration)
+    this.elevationGain = elevationGain
+    // this.type = 'cycling';
+    this.calcSpeed()
+    this._setDescription()
+  }
+
+  calcSpeed() {
+    // km/h
+    this.speed = this.distance / (this.duration / 60)
+    return this.speed
+  }
+}
+
+export { Workout, Running, Cycling }
+------
+* {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --color-brand--1: #ffb545;
+  --color-brand--2: #00c46a;
+
+  --color-dark--1: #2d3439;
+  --color-dark--2: #42484d;
+  --color-light--1: #aaa;
+  --color-light--2: #ececec;
+  --color-light--3: rgb(214, 222, 224);
+}
+
+.leaflet-popup .leaflet-popup-content-wrapper {
+  background-color: var(--color-dark--1);
+  color: var(--color-light--2);
+  border-radius: 5px;
+  padding-right: 0.6rem;
+}
+
+.leaflet-popup .leaflet-popup-content {
+  font-size: 1.5rem;
+}
+
+.leaflet-popup .leaflet-popup-tip {
+  background-color: var(--color-dark--1);
+}
+
+.running-popup .leaflet-popup-content-wrapper {
+  border-left: 5px solid var(--color-brand--2);
+}
+.cycling-popup .leaflet-popup-content-wrapper {
+  border-left: 5px solid var(--color-brand--1);
+}
