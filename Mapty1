@@ -1,0 +1,225 @@
+<template>
+  <div class="app">
+    <div class="sidebar">
+      <img src="logo.png" alt="Logo" class="logo" />
+      <ul class="workouts">
+        <form
+          class="form"
+          :class="{ hidden: formHidden }"
+          @submit.prevent="addWorkout"
+          @keydown.enter.prevent
+        >
+          <div class="form__row">
+            <label class="form__label">Type</label>
+            <select
+              v-model="workoutType"
+              class="form__input form__input--type"
+              @change="toggleElevationField"
+            >
+              <option value="running">Running</option>
+              <option value="cycling">Cycling</option>
+            </select>
+          </div>
+          <div class="form__row">
+            <label class="form__label">Distance</label>
+            <input
+              v-model.number="distance"
+              class="form__input form__input--distance"
+              placeholder="km"
+              required
+            />
+          </div>
+          <div class="form__row">
+            <label class="form__label">Duration</label>
+            <input
+              v-model.number="duration"
+              class="form__input form__input--duration"
+              placeholder="min"
+              required
+            />
+          </div>
+          <div v-if="workoutType === 'running'" class="form__row">
+            <label class="form__label">Cadence</label>
+            <input
+              v-model.number="cadence"
+              class="form__input form__input--cadence"
+              placeholder="step/min"
+              required
+            />
+          </div>
+          <div v-if="workoutType === 'cycling'" class="form__row">
+            <label class="form__label">Elev Gain</label>
+            <input
+              v-model.number="elevation"
+              class="form__input form__input--elevation"
+              placeholder="meters"
+              required
+            />
+          </div>
+          <button class="form__btn">OK</button>
+        </form>
+
+        <!-- Display each workout dynamically with delete button -->
+        <li
+          v-for="(workout, index) in workouts"
+          :key="workout.id"
+          :class="['workout', `workout--${workout.type}`]"
+          @click="moveToPopup(workout)"
+        >
+          <h2 class="workout__title">{{ workout.description }}</h2>
+          <div class="workout__details">
+            <span class="workout__icon">{{ workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️' }}</span>
+            <span class="workout__value">{{ workout.distance }}</span>
+            <span class="workout__unit">km</span>
+          </div>
+          <div class="workout__details">
+            <span class="workout__icon">⏱</span>
+            <span class="workout__value">{{ workout.duration }}</span>
+            <span class="workout__unit">min</span>
+          </div>
+          <div v-if="workout.type === 'running'" class="workout__details">
+            <span class="workout__icon">⚡️</span>
+            <span class="workout__value">{{ workout.pace.toFixed(1) }}</span>
+            <span class="workout__unit">min/km</span>
+          </div>
+          <div v-if="workout.type === 'running'" class="workout__details">
+            <span class="workout__icon">🦶🏼</span>
+            <span class="workout__value">{{ workout.cadence }}</span>
+            <span class="workout__unit">spm</span>
+          </div>
+          <div v-if="workout.type === 'cycling'" class="workout__details">
+            <span class="workout__icon">⚡️</span>
+            <span class="workout__value">{{ workout.speed.toFixed(1) }}</span>
+            <span class="workout__unit">km/h</span>
+          </div>
+          <div v-if="workout.type === 'cycling'" class="workout__details">
+            <span class="workout__icon">⛰</span>
+            <span class="workout__value">{{ workout.elevationGain }}</span>
+            <span class="workout__unit">m</span>
+          </div>
+          <button class="delete-btn" @click.stop="deleteWorkout(index)">Delete</button>
+        </li>
+      </ul>
+    </div>
+    <div id="map"></div>
+  </div>
+</template>
+
+<script>
+import L from 'leaflet';
+
+export default {
+  data() {
+    return {
+      map: null,
+      formHidden: true,
+      workoutType: 'running',
+      distance: 0,
+      duration: 0,
+      cadence: null,
+      elevation: null,
+      workouts: []
+    };
+  },
+  mounted() {
+    this.getUserPosition();
+  },
+  methods: {
+    getUserPosition() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          this.loadMap,
+          () => alert('Could not get your position')
+        );
+      }
+    },
+    loadMap(position) {
+      const { latitude, longitude } = position.coords;
+      const coords = [latitude, longitude];
+      this.map = L.map('map').setView(coords, 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(this.map);
+
+      this.map.on('click', this.showForm);
+    },
+    showForm(event) {
+      this.formHidden = false;
+      this.mapEvent = event;
+    },
+    hideForm() {
+      this.formHidden = true;
+      this.distance = this.duration = this.cadence = this.elevation = 0;
+    },
+    toggleElevationField() {
+      this.formHidden = !this.formHidden;
+    },
+    addWorkout() {
+      const { lat, lng } = this.mapEvent.latlng;
+      const workout = {
+        id: Date.now().toString(),
+        type: this.workoutType,
+        coords: [lat, lng],
+        distance: this.distance,
+        duration: this.duration,
+        cadence: this.workoutType === 'running' ? this.cadence : null,
+        elevation: this.workoutType === 'cycling' ? this.elevation : null,
+        description: `${this.workoutType.charAt(0).toUpperCase() + this.workoutType.slice(1)} on ${new Date().toLocaleDateString()}`
+      };
+
+      // Calculate pace or speed
+      if (workout.type === 'running') workout.pace = workout.duration / workout.distance;
+      if (workout.type === 'cycling') workout.speed = workout.distance / (workout.duration / 60);
+
+      this.workouts.push(workout);
+      this.renderWorkoutMarker(workout);
+      this.hideForm();
+    },
+    renderWorkoutMarker(workout) {
+      L.marker(workout.coords)
+        .addTo(this.map)
+        .bindPopup(
+          L.popup({
+            maxWidth: 250,
+            minWidth: 100,
+            autoClose: false,
+            closeOnClick: false,
+            className: `${workout.type}-popup`
+          })
+        )
+        .setPopupContent(
+          `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
+        )
+        .openPopup();
+    },
+    moveToPopup(workout) {
+      if (this.map) {
+        this.map.setView(workout.coords, 13, {
+          animate: true,
+          pan: { duration: 1 }
+        });
+      }
+    },
+    deleteWorkout(index) {
+      this.workouts.splice(index, 1);
+    }
+  }
+};
+</script>
+
+<style scoped>
+/* Paste content from style.css here */
+
+/* Add some styling for the delete button */
+.delete-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1.2rem;
+  color: white;
+  background-color: red;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+</style>
