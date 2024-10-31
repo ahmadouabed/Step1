@@ -1,0 +1,811 @@
+<template>
+  <div>
+    <b-form @submit.prevent="submitInputData">
+      <div v-for="item in items" :key="item.id">
+        <component :is="item.componentName" :key="itemKey" :input="item" @formData="addFormData">{{
+          'Add New Tropa'
+        }}</component>
+      </div>
+    </b-form>
+  </div>
+</template>
+
+<script>
+import CommonTextInput from '@/components/common/CommonTextInput.vue'
+import CommonTextArea from '@/components/common/CommonTextArea.vue'
+import CommonDropdown from '@/components/common/CommonDropdown.vue'
+import CommonLabel from '@/components/common/CommonLabel.vue'
+import CommonRadioButton from '@/components/common/CommonRadioButton.vue'
+import CommonCheckbox from '@/components/common/CommonCheckbox.vue'
+import CommonButton from '@/components/common/CommonButton.vue'
+import { TEXTAREA_PROPERTIES } from '@/common/recipe/rTextArea'
+import { DROPDOWN_PROPERTIES } from '@/common/recipe/rDropdown'
+import { TEXTINPUTLABEL_PROPERTIES } from '@/common/recipe/rTextInputLabel'
+import { RADIOBUTTON_PROPERTIES } from '@/common/recipe/rRadioButton'
+import { CHECKBOX_PROPERTIES } from '@/common/recipe/rCheckbox'
+import { BUTTON_PROPERTIES } from '@/common/recipe/rButton'
+import { INPUTDATA_PROPERTIES } from '@/common/recipe/rRegistrationForm'
+
+export default {
+  name: 'RegistrationForm',
+  components: {
+    CommonTextInput,
+    CommonDropdown,
+    CommonRadioButton,
+    CommonCheckbox,
+    CommonTextArea,
+    CommonButton,
+    CommonLabel
+  },
+  /**
+   * @description
+   * Inject the tropaList array where the inputData is being pushed.
+   * @object items
+   * - value {any} - the data inputed in the variable inputData
+   * - key {string} - any key references of the inputData
+   */
+  inject: ['tropaList'],
+  data() {
+    return {
+      items: [
+        ...TEXTINPUTLABEL_PROPERTIES,
+        ...DROPDOWN_PROPERTIES,
+        ...RADIOBUTTON_PROPERTIES,
+        ...CHECKBOX_PROPERTIES,
+        ...TEXTAREA_PROPERTIES,
+        ...BUTTON_PROPERTIES
+      ],
+      inputData: JSON.parse(JSON.stringify(INPUTDATA_PROPERTIES)),
+      isError: false,
+      itemKey: 0
+    }
+  },
+  methods: {
+    /**
+     * Function use for storing the value on corresponding key
+     * @param {Object} data - assign and get the key and value variable
+     */
+    addFormData(data) {
+      this.inputData[data.key] = data.value
+    },
+    /**
+     * Function use clear the value of the inputData
+     */
+    resetInput() {
+      this.inputData = JSON.parse(JSON.stringify(INPUTDATA_PROPERTIES))
+      this.itemKey += 1
+    },
+
+    /**
+     * Function use for input validity
+     */
+    formValidity() {
+      this.isError = false
+
+      const validationRules = [
+        {
+          field: 'nickname',
+          pattern: /^[A-Za-z]+$/,
+          message: 'Nickname must not contain any whitespace or whitespace only',
+          value: this.inputData.nickname
+        },
+        {
+          field: 'fullname',
+          pattern: /^[A-Za-z\s]+$/,
+          message: 'Fullname must not have whitespace input only',
+          value: this.inputData.fullname
+        },
+        {
+          field: 'email',
+          pattern: /^[a-z0-9_.]+@[a-z0-9.]+\.[a-z.]{2,}$/,
+          message:
+            'Invalid email, email must not contain special characters or any capital letters',
+          value: this.inputData.email
+        },
+        {
+          field: 'zodiacSign',
+          condition: this.inputData.zodiacSign === '',
+          message: 'Select  your Zodiac sign'
+        },
+        {
+          field: 'loveLanguage',
+          condition: this.inputData.loveLanguage.length !== 3,
+          message: 'Choose your top 3 Love Language'
+        },
+
+        {
+          field: 'motto',
+          condition: this.inputData.motto.trim() === '',
+          message: 'Motto must not contain only whitespace'
+        }
+      ]
+
+      const hasError = validationRules.some((rule) => {
+        if (rule.pattern) {
+          if (rule.value.trim() === '' || !rule.pattern.test(rule.value)) {
+            alert(rule.message)
+            return true
+          }
+        } else if (rule.condition) {
+          alert(rule.message)
+          return true
+        }
+        return false
+      })
+      this.isError = hasError
+      return this.isError
+    },
+    /**
+     * Function use to push the inputData to the variable used in inject and clearing
+     */
+    submitInputData() {
+      if (!this.formValidity() && this.isError == false) {
+        alert('New Tropa has been added')
+        this.tropaList.unshift({
+          pantropa: { ...JSON.parse(JSON.stringify(this.inputData)) },
+          showDetailsButton: false,
+          favoriteButton: false
+        })
+        this.resetInput()
+      }
+    }
+  }
+}
+</script>
+-------------------------
+<template>
+  <b-container fluid class="mx-auto my-4 w-50">
+    <h1 class="py-5 px-2 mb-2 text-black text-center display-1">
+      <i class="bi bi-people-fill"></i> Truepa Time
+    </h1>
+
+    <b-row class="pb-3">
+      <b-col class="py-2" v-for="btn in BUTTON" :key="btn.id"
+        ><common-button
+          :is="btn.componentName"
+          :input="btn"
+          :key="btn.id"
+          @action="switchAddToListofFriend"
+        >
+          {{ btn.event.actionType === 'addFriend' ? 'Add Tropa' : 'Tropa List' }}
+        </common-button>
+      </b-col>
+    </b-row>
+
+    <b-card v-show="addToFriendList"><registration-form> </registration-form></b-card>
+    <b-card v-show="!addToFriendList"><slam-book-friend-list></slam-book-friend-list></b-card>
+  </b-container>
+</template>
+
+<script>
+import RegistrationForm from '@/components/pages/Slambook/RegistrationForm.vue'
+import SlamBookFriendList from '@/components/pages/Slambook/SlamBookFriendList.vue'
+import { TRUEPATIME_BUTTON } from '@/common/recipe/rButton'
+import CommonButton from '@/components/common/CommonButton.vue'
+
+export default {
+  name: 'SlamBook',
+  components: {
+    RegistrationForm,
+    SlamBookFriendList,
+    CommonButton
+  },
+
+  data() {
+    return {
+      BUTTON: [...TRUEPATIME_BUTTON],
+      addToFriendList: false,
+      tropaList: []
+    }
+  },
+  /**
+   * Provide functio use for accepting the data from registration form and pass to the friendlist
+   * @return {array} store the global variable tropaList
+   */
+  provide() {
+    return {
+      tropaList: this.tropaList
+    }
+  },
+  methods: {
+    /**
+     * Function use for the switching to Add Tropa or Tropa List
+     * @param {string} actionType - the emit vaule for the event actionType in button recipe
+     */
+    switchAddToListofFriend(actionType) {
+      const actionTypeValue = {
+        addFriend: true,
+        openFriendList: false
+      }
+      this.addToFriendList = actionTypeValue.hasOwnProperty(actionType)
+        ? actionTypeValue[actionType]
+        : null
+    }
+  }
+}
+</script>
+
+<style scoped>
+h1 {
+  text-align: center;
+  font-family: cursive;
+}
+</style>
+-----------------------------
+<template>
+  <div>
+    <ul>
+      <li>
+        <slot-card v-for="(tropa, index) in tropaList" :key="tropa.id">
+          <div class="d-flex justify-content-center align-items-center gap-3">
+            <h2 class="display-4 text-wrap py-2">
+              {{ tropa.pantropa.nickname }}
+              <i v-if="tropa.favoriteButton" class="bi bi-heart-fill colored"></i>
+            </h2>
+          </div>
+          <div class="d-flex justify-content-around flex-wrap gap-3 py-2">
+            <div v-for="item in items" :key="item.id">
+              <common-button
+                v-if="item.event.actionType === 'showDetails'"
+                :is="item.componentName"
+                :key="item.id"
+                :input="item"
+                @click="showDetails(index, tropa)"
+                >{{ !tropa.showDetailsButton ? ' Show Details' : 'Hide Details' }}</common-button
+              >
+              <common-button
+                v-if="item.event.actionType === 'deleteFriends'"
+                :is="item.componentName"
+                :key="item.id"
+                :input="item"
+                @click="deleteFriends(index, tropa)"
+                >{{ 'UnTropa' }}</common-button
+              >
+              <common-button
+                v-if="item.event.actionType === 'showFavorites'"
+                :is="item.componentName"
+                :key="item.id"
+                :input="item"
+                @click="showFavorites(index, tropa)"
+                >{{ !tropa.favoriteButton ? ' Favorite' : 'UnFavorite' }}</common-button
+              >
+            </div>
+          </div>
+          <b-card v-if="tropa.showDetailsButton" :key="tropa.id">
+            <ul>
+              <b-card v-for="(input, categories) in tropa.pantropa" :key="input"
+                ><li>
+                  <strong v-if="categories === 'loveLanguage'"> Top 3 Love Language: </strong>
+                  <strong v-else-if="categories === 'zodiacSign'"> Zodiac Sign: </strong>
+                  <strong v-else-if="categories === 'phoneNumber'"> Phone Number: </strong>
+                  <strong v-else-if="categories === 'drink'"> Drinks Alcoholic beverage: </strong>
+                  <strong v-else-if="categories === 'smoke'"> Smoker: </strong>
+                  <strong v-else>{{ categories }}: </strong>
+                  <span v-if="categories === 'loveLanguage'">{{ input.join(', ') }}</span>
+                  <span v-else>{{ input }}</span>
+                </li></b-card
+              >
+            </ul></b-card
+          >
+        </slot-card>
+        <slot-card v-if="tropaList.length === 0"
+          ><h3 class="d-flex justify-content-center text-center">{{ noFriends }}</h3></slot-card
+        >
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script>
+import { TROPALISTBUTTON_PROPERTIES } from '@/common/recipe/rButton'
+import CommonButton from '@/components/common/CommonButton.vue'
+import SlotCard from '@/components/common/SlotCard.vue'
+
+export default {
+  name: 'SlamBookFriendList',
+  components: { CommonButton, SlotCard },
+  /**
+   * @description
+   * Inject the tropaList array where the inputData is being pushed.
+   * @object items
+   * - value {any} - the data inputed in the variable inputData
+   * - key {string} - any key references of the inputData
+   */
+  inject: ['tropaList'],
+  data() {
+    return {
+      items: [...TROPALISTBUTTON_PROPERTIES],
+      noFriends: 'No Listed Tropa'
+    }
+  },
+  methods: {
+    /**
+     * Function use for the show details button functionality
+     * @param {Object} tropa - the object value in the array of tropa array
+     * @param {int} index - index value of the tropaList array
+     */
+    showDetails(index, tropa = null) {
+      tropa.showDetailsButton = !tropa.showDetailsButton
+    },
+    /**
+     * Function use for the UnTropa button functionality
+     * @param {Object} tropa - the object value in the array of tropa array
+     * @param {int} index - index value of the tropaList array
+     */
+    deleteFriends(index, tropa = null) {
+      const unfriendConfirmation = confirm('Are you sure? Do you want to remove this Tropa?')
+      if (unfriendConfirmation) this.tropaList.splice(index, 1)
+    },
+    /**
+     * Function use for the favorite button functionality
+     * @param {Object} tropa - the object value in the array of tropa array
+     * @param {int} index - index value of the tropaList array
+     */
+    showFavorites(index, tropa = null) {
+      tropa.favoriteButton = !tropa.favoriteButton
+    }
+  }
+}
+</script>
+
+<style scoped>
+ul {
+  padding: 0;
+}
+ul li {
+  list-style-type: none;
+  margin: 0;
+}
+
+h2 {
+  width: 30vw;
+  text-align: center;
+}
+
+h2,
+h3 {
+  font-family: cursive;
+  text-transform: capitalize;
+}
+
+.colored {
+  color: #c9184a;
+}
+
+strong {
+  text-transform: capitalize;
+}
+
+.hide {
+  display: hidden;
+}
+</style>
+
+-------
+<template>
+  <div>
+    <b-button v-bind="input.directives" @click="sendActionButton"><slot></slot></b-button>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonButton',
+  /**
+   * Use for the passing the object data from the button recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the checkbox
+   * - key {string} - any key reference for the attribute of the checkbox
+   * @object display:
+   * - value {array} - array data that has object value for the choices in the checkbox
+   * - key {string} - any key reference on the checkbox value
+   *  @object event:
+   * - value {string} - use for the specific action of the button component
+   * - key {string} - any key reference on the button component
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  methods: {
+    /**
+     * Function used to pass the data from parent component to child component for the button component
+     * @return {string} emit the value of actionType under event in the reciper
+     */
+    sendActionButton() {
+      return this.$emit('action', this.input.event.actionType)
+    }
+  }
+}
+</script>
+
+------------------
+<template>
+  <div>
+    <b-form-checkbox-group
+      v-model="selected"
+      :options="input.display.options"
+      v-bind="input.directives"
+      @change="emitValue"
+    >
+    </b-form-checkbox-group>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonCheckBox',
+  /**
+   * Use for the passing the object data from the checkbox recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object data:
+   * - value {any} - any data to be inputed on the checkbox component
+   * - key {string} - any key reference on the checkbox component
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the checkbox
+   * - key {string} - any key reference for the attribute of the checkbox
+   * @object display:
+   * - value {array} - array data that has object value for the choices in the checkbox
+   * - key {string} - any key reference on the checkbox value
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  data() {
+    return {
+      selected: []
+    }
+  },
+  methods: {
+    /**
+     * Function use to emit the key and value of the child component to the parent component
+     * @returns {Object} store the key and value to the formData variable and emit it to the parent component
+     */
+    emitValue() {
+      return this.$emit('formData', { key: this.input.data.saveAs, value: this.selected })
+    }
+  }
+}
+</script>
+------------------------------------------
+<template>
+  <div>
+    <b-form-select
+      :options="input.display.options"
+      v-bind="input.directives"
+      v-model="value"
+      @change="emitValue"
+    >
+    </b-form-select>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonDropdown',
+  /**
+   * Use for the passing the object data from the radio button recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object data:
+   * - value {any} - any data to be inputed on the dropdown component
+   * - key {string} - any key reference on the dropdown component
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the dropdown
+   * - key {string} - any key reference for the attribute of the dropdown
+   * @object display:
+   * - value {array} - array data that has object value for the choices in the dropdown
+   * - key {string} - any key reference on the dropdown
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  data() {
+    return {
+      value: null
+    }
+  },
+  methods: {
+    /**
+     * Function use to emit the key and value of the child component to the parent component
+     * @returns {Object} store the key and value to the formData variable and emit it to the parent component
+     */
+    emitValue() {
+      return this.$emit('formData', { key: this.input.data.saveAs, value: this.value })
+    }
+  }
+}
+</script>
+---------------------
+<template>
+  <div>
+    <label v-bind="input.directives">{{ input.display.label }}</label>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonLabel',
+  /**
+   * Use for the passing the object data from the recipe to the parent component
+   * @description
+   * Receives data object and properties
+   *  @object directives:
+   * - value {any} - any data to be used for the overall styles of the label
+   * - key {string} - any key reference for the attribute of the label
+   * @object display:
+   * - value {any} - any data to be used for the text of the recipe
+   * - key {string} - any key reference for the text label
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  }
+}
+</script>
+------------------------------
+<template>
+  <div>
+    <b-nav-item
+      ><router-link v-bind="input.directives"
+        ><i :class="input.display.icon"></i> {{ input.display.text }}</router-link
+      ></b-nav-item
+    >
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonNavbar',
+  /**
+   * Use for the passing the object data from the NavbarLink recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the navbar link
+   * - key {string} - any key reference for the attribute of the navbar link
+   * @object display:
+   * - value {array} - array data that has object value for the choices in the navbar link
+   * - key {string} - any key reference on the navbar link
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  }
+}
+</script>
+----------------------
+<template>
+  <div>
+    <b-form-radio-group
+      v-model="checked"
+      :options="input.display.options"
+      v-bind="input.directives"
+      required
+      @change="emitValue"
+    >
+    </b-form-radio-group>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonRadioButton',
+  /**
+   * Use for the passing the object data from the radio button recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object data:
+   * - value {any} - any data to be inputed on the radio button field
+   * - key {string} - any key reference on the radio button field
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the radio button field
+   * - key {string} - any key reference for the attribute of the radio button field
+   * @object display:
+   * - value {array} - array data that has object value for the choices in the radio button field
+   * - key {string} - any key reference on the radio button field
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  data() {
+    return {
+      checked: ''
+    }
+  },
+  methods: {
+    /**
+     * Function use to emit the key and value of the child component to the parent component
+     * @returns {Object} store the key and value to the formData variable and emit it to the parent component
+     */
+    emitValue() {
+      return this.$emit('formData', { key: this.input.data.saveAs, value: this.checked })
+    }
+  }
+}
+</script>
+-------------------
+<template>
+  <div>
+    <b-form-textarea
+      v-model="textInput"
+      v-bind="input.directives"
+      @change="emitValue"
+      required
+    ></b-form-textarea>
+  </div>
+</template>
+
+<script>
+import CommonTextArea from '@/common/mixins/CommonTextArea'
+export default {
+  name: 'CommonTextArea',
+  mixins: [CommonTextArea]
+}
+</script>
+---------------------------
+<template>
+  <div>
+    <b-form-input
+      v-model="textInputData"
+      v-bind="input.directives"
+      @change="emitValue"
+      @keypress="checkIfKeyIsValid($event, input.directives.type, input.data.saveAs)"
+      trim
+      required
+    >
+    </b-form-input>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'CommonTextInput',
+  /**
+   * Use for the passing the object data from the text input recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object data:
+   * - value {any} - any data to be inputed on the input field
+   * - key {string} - any key reference on the input field
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the input field
+   * -key {string} - any key reference for the attribute of the input field
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  data() {
+    return {
+      textInputData: ''
+    }
+  },
+  methods: {
+    /**
+     * Function use to emit the key and value of the child component to the parent component
+     * @returns {Object} store the key and value to the formData variable and emit it to the parent component
+     */
+    emitValue() {
+      return this.$emit('formData', {
+        key: this.input.data.saveAs,
+        value: this.textInputData.trim()
+      })
+    },
+    /**
+     * Function use to restrict the input based on the regex variable
+     * @param {string} event - character string from the key
+     * @param {string} type - use for identifying the type of the input data
+     */
+    checkIfKeyIsValid(event, type, saveAs) {
+      const regexText = /^[a-zA-Z]+$/
+      const regexNumber = /^[0-9]+$/
+      const regexDecimalNumber = /^[0-9.]+$/
+      if (type == 'text' && event.key != ' ' && !this.textInput(regexText, event.key)) {
+        event.preventDefault()
+      }
+      if (type == 'number' && saveAs == 'age' && !this.textInput(regexNumber, event.key)) {
+        event.preventDefault()
+      }
+      if (type == 'tel' && !this.textInput(regexNumber, event.key)) {
+        event.preventDefault()
+      }
+      if (
+        type == 'number' &&
+        saveAs == 'height' &&
+        !this.textInput(regexDecimalNumber, event.key)
+      ) {
+        event.preventDefault()
+      }
+      if (
+        type == 'number' &&
+        saveAs == 'weight' &&
+        !this.textInput(regexDecimalNumber, event.key)
+      ) {
+        event.preventDefault()
+      }
+    },
+    /**
+     * Function use to test the input data
+     * @param {*} regex - the pattern use for comparing the input to the regex pattern
+     * @param {*} input - the input data on the text input
+     * @return {boolean} test the input if it following the regex pattern
+     */
+    textInput(regex, input) {
+      return regex.test(input)
+    }
+  }
+}
+</script>
+-----------------------------
+<template>
+  <b-form-input v-model="taskText" v-bind="input.directives" @change="emitValue" trim>
+  </b-form-input>
+</template>
+
+<script>
+export default {
+  name: 'CommonToDoInput',
+  /**
+   * Use for the passing the object data from the text input recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object data:
+   * - value {any} - any data to be inputed on the input field
+   * - key {string} - any key reference on the input field
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the input field
+   * -key {string} - any key reference for the attribute of the input field
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  data() {
+    return {
+      taskText: ''
+    }
+  },
+  methods: {
+    /**
+     * Function use to emit the key and value of the child component to the parent component
+     * @returns {Object} store the key and value to the formData variable and emit it to the parent component
+     */
+    emitValue() {
+      return this.$emit('formData', {
+        key: this.input.data.saveAs,
+        value: this.taskText.trim()
+      })
+    }
+  }
+}
+</script>
+----------------------------
+export default {
+  /**
+   * Use for the passing the object data from the text area recipe to the parent component
+   * @description
+   * Receives data object and properties
+   * @object data:
+   * - value {any} - any data to be inputed on the text area field
+   * - key {string} - any key reference on the text field
+   * @object directives:
+   * - value {any} - any data to be used for the overall styles of the text area field
+   * - key {string} - any key reference for the attribute of the text area field
+   */
+  props: {
+    input: { data: Object, type: Object, required: true }
+  },
+  data() {
+    return {
+      textInput: ''
+    }
+  },
+  methods: {
+    /**
+     * Function use to emit the key and value of the child component to the parent component
+     * @returns {Object} store the key and value to the formData variable and emit it to the parent component
+     */
+    emitValue() {
+      return this.$emit('formData', { key: this.input.data.saveAs, value: this.textInput })
+    }
+  }
+}
