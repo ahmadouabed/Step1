@@ -1,0 +1,197 @@
+<template>
+  <b-container>
+    <div v-for="btn in LIST_BTN" :key="btn.id">
+      <li v-for="(details, index) in renderingKaibigans" :key="details.id">
+        <button-slot>Kaibigan Details</button-slot>
+        <img v-show="details.activeFavourite" src="../../../assets/img/support.png" />
+
+        <h2 class="fullname">{{ details.kaibigan.nickname }}</h2>
+
+        <b-button id="show" @click="toggleDetails(details)"
+          >{{ details.activeKaibigan ? 'Hide' : 'Show' }} Details</b-button
+        >
+
+        <ul v-show="details.activeKaibigan">
+          <b-button id="favourite" variant="info" @click="favourite(details)"> Favourite</b-button>
+
+          <b-button id="remove" variant="danger" @click="remove(index)">Remove</b-button>
+
+          <li class="label" v-for="(name, label) in details.kaibigan" :key="name.id">
+            <div>
+              <strong>{{ LABELS[label] }}</strong
+              >: <span v-if="label === 'love'">{{ name.join(', ') }}</span>
+
+              <span v-else>{{ name }}</span>
+            </div>
+          </li>
+        </ul>
+      </li>
+    </div>
+  </b-container>
+</template>
+
+<script>
+import CommonButton from '@/components/common/CommonButton.vue'
+import { LISTBUTTONS } from '@/common/recipe/rButtonRecipe'
+import ButtonSlot from '@/components/pages/Slamboo/ButtonSlot.vue'
+import { KAIBIGANLABELS } from '@/common/recipe/rCommonLabels'
+import { Favourite } from '@/common/mixin/favorite'
+
+export default {
+  name: 'KaibiganList',
+  mixins: [Favourite],
+
+  components: {
+    CommonButton,
+    ButtonSlot
+  },
+
+  /**
+   * @description
+   * Receives data array and properties
+   * @see Kaibigan.js
+   * @data object:
+   * data {array} - gets the listahanKaibigan array from kaibgan.vue
+   */
+
+  props: {
+    kaibigans: { data: Array, required: true }
+  },
+
+  data() {
+    return {
+      LIST_BTN: LISTBUTTONS,
+      detailsAreVisible: false,
+      favouriteKaibigan: false,
+      indexArray: null,
+      LABELS: KAIBIGANLABELS
+    }
+  },
+
+  computed: {
+    /**
+     * Function to return kaibigans
+     * @return - to return the kaibigans props
+     */
+
+    renderingKaibigans() {
+      return this.kaibigans
+    }
+  },
+
+  methods: {
+    /**
+     * Function to show the details of kabigans
+     * @param {array} details - gets the details and determines whethere true or false
+     */
+
+    toggleDetails(details) {
+      details.activeKaibigan = !details.activeKaibigan
+    },
+
+    /**
+     * Function to remove the kabigan details
+     * @param {array} id - gets the id so that it will use it for index
+     */
+    remove(id) {
+      const remove = confirm('Kabigan will be removed, Procced?')
+      if (remove) this.$emit('removebtn', id)
+    }
+  }
+}
+</script>
+
+<style scoped>
+strong {
+  text-transform: capitalize;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img {
+  width: 5vb;
+  padding-left: 7px;
+  padding-top: 6px;
+}
+html {
+  font-family: 'Jost', sans-serif;
+}
+body {
+  margin: 0;
+}
+header {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+  margin: 3rem auto;
+  border-radius: 10px;
+  padding: 1rem;
+  background-color: #58004d;
+  color: white;
+  text-align: center;
+  width: 90%;
+  max-width: 40rem;
+}
+#app ul {
+  margin-top: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#app li {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.26);
+  margin: 1rem auto;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  width: 90%;
+  max-width: 40rem;
+  list-style-type: none;
+  font-size: 1vw;
+  word-wrap: break-word;
+}
+#app h2 {
+  padding-top: 5px;
+  margin-top: 50px;
+  font-size: 1.8vw;
+  border-bottom: 4px solid #ccc;
+  color: #3b445b;
+  margin: 0 0 1rem 0;
+  padding-bottom: 8px;
+  text-transform: capitalize;
+}
+#show {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #49d292;
+  background-color: #49d292;
+  color: white;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.26);
+}
+
+#remove {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #dc3545;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.26);
+}
+
+#favourite {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.26);
+}
+
+#show:hover,
+#remove:active {
+  background-color: #3b445b;
+  border-color: #3b445b;
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.26);
+}
+</style>
