@@ -278,3 +278,19 @@ describe('RegistrationForm.vue', () => {
     expect(formAddHandlingSpy).toHaveBeenCalled()
   })
 })
+
+
+-------------------------------------
+
+Explanation of the Test File:
+Setup: The beforeEach function initializes a fresh instance of the RegistrationForm component before each test. This ensures that tests are isolated from each other.
+
+Testing addFormData: This test checks if the addFormData method correctly updates the formData object.
+
+Testing formAddHandling: This test verifies that when the form is submitted, the data is logged, an alert is shown, and the addKaibigan event is emitted with the correct form data.
+
+Testing resetKaibigan: This test checks if the resetKaibigan method correctly increments the resetKaibiganId.
+
+Testing checkValidity: This test ensures that the checkValidity method correctly identifies invalid data and resets the formData as expected.
+
+Testing eventHandler: This test checks if the eventHandler correctly calls the formAddHandling method when the action is 'Submit'.
