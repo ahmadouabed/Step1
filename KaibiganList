@@ -195,3 +195,127 @@ header {
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.26);
 }
 </style>
+
+
+-----------------------------------------------------
+
+
+
+
+// KaibiganList.spec.js
+
+import { shallowMount } from '@vue/test-utils'
+import KaibiganList from '@/components/pages/Slamboo/KaibiganList.vue'
+
+describe('KaibiganList.vue', () => {
+  let wrapper
+
+  const mockKaibigans = [
+    {
+      id: 1,
+      kaibigan: { nickname: 'John Doe', love: ['Quality Time', 'Acts of Service'] },
+      activeKaibigan: false,
+      activeFavourite: false
+    },
+    {
+      id: 2,
+      kaibigan: { nickname: 'Jane Doe', love: ['Words of Affirmation', 'Gifts'] },
+      activeKaibigan: false,
+      activeFavourite: false
+    }
+  ]
+
+  beforeEach(() => {
+    wrapper = shallowMount(KaibiganList, {
+      propsData: {
+        kaibigans: mockKaibigans
+      }
+    })
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('should render the correct number of kaibigan details', () => {
+    const listItems = wrapper.findAll('li')
+    expect(listItems.length).toBe(mockKaibigans.length)
+  })
+
+  it('should toggle details when button is clicked', async () => {
+    const button = wrapper.find('#show')
+    await button.trigger('click')
+    expect(mockKaibigans[0].activeKaibigan).toBe(true) // Check if the first kaibigan's details are shown
+
+    await button.trigger('click')
+    expect(mockKaibigans[0].activeKaibigan).toBe(false) // Check if the details are hidden again
+  })
+
+  it('should emit removebtn event when remove button is clicked', async () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => true)
+    const removeButton = wrapper.find('#remove')
+    
+    await removeButton.trigger('click')
+
+    expect(confirmSpy).toHaveBeenCalledWith('Kabigan will be removed, Procced?')
+    expect(wrapper.emitted().removebtn).toBeTruthy()
+    expect(wrapper.emitted().removebtn[0]).toEqual([0]) // Check if the correct index is emitted
+
+    confirmSpy.mockRestore()
+  })
+
+  it('should not emit removebtn event if confirm is canceled', async () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false)
+    const removeButton = wrapper.find('#remove')
+
+    await removeButton.trigger('click')
+
+    expect(confirmSpy).toHaveBeenCalledWith('Kabigan will be removed, Procced?')
+    expect(wrapper.emitted().removebtn).toBeUndefined() // Check that no event was emitted
+
+    confirmSpy.mockRestore()
+  })
+
+  it('should display the correct kaibigan nickname', () => {
+    const nickname = wrapper.find('h2.fullname')
+    expect(nickname.text()).toBe(mockKaibigans[0].kaibigan.nickname)
+  })
+
+  it('should show favourite icon if activeFavourite is true', async () => {
+    // Set activeFavourite to true for the first kaibigan
+    mockKaibigans[0].activeFavourite = true
+    await wrapper.setProps({ kaibigans: mockKaibigans })
+
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true) // Check if the image is rendered
+  })
+
+  it('should not show favourite icon if activeFavourite is false', async () => {
+    // Ensure activeFavourite is false
+    mockKaibigans[0].activeFavourite = false
+    await wrapper.setProps({ kaibigans: mockKaibigans })
+
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(false) // Check if the image is not rendered
+  })
+})
+
+
+
+
+--------------------------------------
+
+
+
+Explanation of the Test File:
+Setup: The beforeEach function initializes a fresh instance of the KaibiganList component with mock data before each test.
+
+Rendering Test: The first test checks that the component renders the correct number of kaibigan details based on the props passed.
+
+Toggling Details: The second test verifies that clicking the "Show Details" button toggles the visibility of the kaibigan's details.
+
+Removing Kaibigan: The third test checks that clicking the "Remove" button emits the removebtn event if the user confirms the action.
+
+Canceling Removal: The fourth test ensures that the removebtn event is not emitted if the user cancels the confirmation dialog.
+
+Displaying Nickname: The fifth test checks that the correct kaibigan nickname is displayed.
