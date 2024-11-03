@@ -197,3 +197,23 @@ describe('Kaibigan.vue', () => {
     confirmSpy.mockRestore()
   })
 })
+
+-----------------------------------------
+
+
+Explanation of the Test File:
+Setup: The beforeEach function initializes a fresh instance of the Kaibigan component before each test, ensuring tests are isolated.
+
+Initialization Test: The first test checks that the component initializes with the correct default data.
+
+Adding Kaibigan: The second test verifies that the pushToArray method correctly adds a kaibigan to the list.
+
+Removing Kaibigan: The third test checks that the removethis method correctly removes a kaibigan from the list.
+
+Changing Pages: The fourth test ensures that the changePages method updates the visibility of the kaibigan form and list correctly.
+
+Alerting on Empty List: The fifth test checks that an alert is shown when trying to display the kaibigan list when it's empty.
+
+Confirming Before Resetting: The sixth test checks that the resetKaibigans method prompts for confirmation before proceeding with the reset.
+
+Preventing Resetting on Cancel: The seventh test ensures that if the user cancels the confirmation, the event's default action is prevented.
