@@ -298,77 +298,212 @@ Testing eventHandler: This test checks if the eventHandler correctly calls the f
 
 ---------------------------------------------------------
 
-refractor 
-
-import { shallowMount } from '@vue/test-utils'
-import RegistrationForm from '@/components/pages/Slamboo/RegistrationForm.vue'
+// RegistrationForm.spec.js
+import { shallowMount } from '@vue/test-utils';
+import RegistrationForm from '@/components/RegistrationForm.vue';
+import CommonTextInput from '@/components/common/CommonTextInput.vue';
+import CommonDropdown from '@/components/common/CommonDropdown.vue';
+import CommonTextArea from '@/components/common/CommonTextArea.vue';
+import CommonRadio from '@/components/common/CommonRadio.vue';
+import CommonCheckbox from '@/components/common/CommonCheckbox.vue';
+import CommonButton from '@/components/common/CommonButton.vue';
 
 describe('RegistrationForm.vue', () => {
-  let wrapper
+  let wrapper;
 
   beforeEach(() => {
-    wrapper = shallowMount(RegistrationForm)
-  })
+    wrapper = shallowMount(RegistrationForm, {
+      stubs: {
+        CommonTextInput,
+        CommonDropdown,
+        CommonTextArea,
+        CommonRadio,
+        CommonCheckbox,
+        CommonButton
+      }
+    });
+  });
 
   afterEach(() => {
-    jest.clearAllMocks()
-  })
+    wrapper.destroy();
+  });
 
-  it('if Component is is called', () => {
-    const wrapper = shallowMount(RegistrationForm, {
+  it('renders the form with components correctly', () => {
+    expect(wrapper.find('b-form').exists()).toBe(true);
+    expect(wrapper.findAllComponents(CommonTextInput).exists()).toBe(true);
+    expect(wrapper.findAllComponents(CommonDropdown).exists()).toBe(true);
+    expect(wrapper.findAllComponents(CommonTextArea).exists()).toBe(true);
+    expect(wrapper.findAllComponents(CommonRadio).exists()).toBe(true);
+    expect(wrapper.findAllComponents(CommonCheckbox).exists()).toBe(true);
+    expect(wrapper.findAllComponents(CommonButton).exists()).toBe(true);
+  });
+
+  it('handles form submission by calling formAddHandling', () => {
+    const spy = jest.spyOn(wrapper.vm, 'formAddHandling');
+    wrapper.vm.eventHandler('Submit');
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('adds form data correctly with addFormData', () => {
+    const data = { key: 'fullname', value: 'John Doe' };
+    wrapper.vm.addFormData(data);
+    expect(wrapper.vm.formData.fullname).toBe('John Doe');
+  });
+
+  it('checks validity of the form with checkValidity', () => {
+    wrapper.setData({
+      formData: {
+        fullname: 'John Doe',
+        nickname: 'Johnny',
+        age: '25',
+        birthday: '2000-01-01',
+        email: 'john.doe@example.com',
+        phonenumber: '09123456789',
+        personality: 'Extrovert',
+        gender: 'Male',
+        love: ['words', 'time', 'gifts'],
+        motto: 'Live and let live'
+      }
+    });
+    wrapper.vm.checkValidity();
+    expect(wrapper.vm.isError).toBe(false);
+  });
+
+  it('sets error when invalid data is provided', () => {
+    wrapper.setData({
+      formData: {
+        fullname: '',
+        nickname: '',
+        age: '150',
+        birthday: '',
+        email: 'invalid-email',
+        phonenumber: '12345',
+        personality: '',
+        gender: '',
+        love: ['words'],
+        motto: ''
+      }
+    });
+    wrapper.vm.checkValidity();
+    expect(wrapper.vm.isError).toBe(true);
+  });
+
+  it('calls resetKaibigan to reset form data', () => {
+    wrapper.vm.formData.fullname = 'John Doe';
+    wrapper.vm.resetKaibigan();
+    expect(wrapper.vm.formData.fullname).toBe('');
+    expect(wrapper.vm.resetKaibiganId).toBe(1);
+  });
+
+  it('handles form submission and emits addKaibigan event', async () => {
+    const spy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    wrapper.setData({
+      formData: {
+        fullname: 'John Doe',
+        nickname: 'Johnny',
+        age: '25',
+        birthday: '2000-01-01',
+        email: 'john.doe@example.com',
+        phonenumber: '09123456789',
+        personality: 'Extrovert',
+        gender: 'Male',
+        love: ['words', 'time', 'gifts'],
+        motto: 'Live and let live'
+      }
+    });
+    await wrapper.vm.formAddHandling();
+    expect(spy).toHaveBeenCalledWith('Form Submitted!');
+    expect(wrapper.emitted().addKaibigan).toBeTruthy();
+    spy.mockRestore();
+  });
+});
+
+
+or
+
+-------------------------------------------------------
+
+import { shallowMount } from '@vue/test-utils';
+import RegistrationForm from '@/components/pages/Slamboo/RegistrationForm.vue';
+
+describe('RegistrationForm.vue', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    wrapper = shallowMount(RegistrationForm, {
       global: {
         stubs: {
           component: false
         }
       }
-    })
-    expect(wrapper.findComponent({ name: 'component' }).exists())
-  })
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    wrapper.destroy();
+  });
+
+  it('should render the component and child components correctly', () => {
+    expect(wrapper.exists()).toBe(true);
+    expect(wrapper.find('b-form').exists()).toBe(true);
+  });
 
   it('should call addFormData method and update formData', () => {
-    const mockData = { key: 'fullname', value: 'Sample Man' }
-    wrapper.vm.addFormData(mockData)
-    expect(wrapper.vm.formData.fullname).toBe('Sample Man')
-  })
-
-  test('If component exists...', async () => {
-    expect(wrapper.exists()).toBeTruthy()
-  })
+    const mockData = { key: 'fullname', value: 'Sample Man' };
+    wrapper.vm.addFormData(mockData);
+    expect(wrapper.vm.formData.fullname).toBe('Sample Man');
+  });
 
   it('should handle form submission correctly', () => {
-    const consoleSpy = jest.spyOn(console, 'log')
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
-    wrapper.vm.formData = {
-      fullname: 'Sample Man',
-      nickname: 'Sample',
-      age: 25,
-      birthday: '2000-01-01',
-      email: 'sample@example.com',
-      phonenumber: '09123456789',
-      personality: 'Extrovert',
-      gender: 'Male',
-      love: ['Quality Time', 'Acts of Service', 'Words of Affirmation'],
-      motto: 'Live and Let Live'
-    }
+    const consoleSpy = jest.spyOn(console, 'log');
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
-    wrapper.vm.formAddHandling()
+    wrapper.setData({
+      formData: {
+        fullname: 'Sample Man',
+        nickname: 'Sample',
+        age: '25',
+        birthday: '2000-01-01',
+        email: 'sample@example.com',
+        phonenumber: '09123456789',
+        personality: 'Extrovert',
+        gender: 'Male',
+        love: ['Quality Time', 'Acts of Service', 'Words of Affirmation'],
+        motto: 'Live and Let Live'
+      },
+      isError: false
+    });
 
-    expect(consoleSpy).toHaveBeenCalledWith('Data Added:', wrapper.vm.formData)
-    expect(alertSpy).toHaveBeenCalledWith('Form Submitted!')
-    expect(wrapper.emitted().addKaibigan[0]).toEqual([wrapper.vm.formData])
-    expect(wrapper.vm.resetKaibiganId).toBe(1)
+    wrapper.vm.formAddHandling();
 
-    consoleSpy.mockRestore()
-    alertSpy.mockRestore()
-  })
+    expect(consoleSpy).toHaveBeenCalledWith('Data Added:', wrapper.vm.formData);
+    expect(alertSpy).toHaveBeenCalledWith('Form Submitted!');
+    expect(wrapper.emitted().addKaibigan[0]).toEqual([wrapper.vm.formData]);
+    expect(wrapper.vm.resetKaibiganId).toBe(1);
+
+    consoleSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
 
   it('should reset formData correctly', () => {
-    wrapper.vm.resetKaibigan()
-    expect(wrapper.vm.resetKaibiganId).toBe(1)
-  })
+    wrapper.setData({
+      formData: {
+        fullname: 'Sample Man',
+        nickname: 'Sample',
+        age: '25',
+        birthday: '2000-01-01',
+        email: 'sample@example.com',
+        phonenumber: '09123456789',
+        personality: 'Extrovert',
+        gender: 'Male',
+        love: ['Quality Time', 'Acts of Service', 'Words of Affirmation'],
+        motto: 'Live and Let Live'
+      }
+    });
 
-  it('should validate form correctly', () => {
-    wrapper.vm.formData = {
+    wrapper.vm.resetKaibigan();
+    expect(wrapper.vm.formData).toEqual({
       fullname: '',
       nickname: '',
       age: '',
@@ -379,26 +514,57 @@ describe('RegistrationForm.vue', () => {
       gender: '',
       love: [],
       motto: ''
-    }
+    });
+    expect(wrapper.vm.resetKaibiganId).toBe(1);
+  });
 
-    wrapper.vm.checkValidity()
+  it('should validate form correctly - invalid data', () => {
+    wrapper.setData({
+      formData: {
+        fullname: '',
+        nickname: '',
+        age: '150',  // Invalid age
+        birthday: '',
+        email: 'invalid-email',  // Invalid email
+        phonenumber: '12345',  // Invalid phone number
+        personality: '',
+        gender: '',
+        love: [],
+        motto: ''
+      },
+      isError: false
+    });
 
-    expect(wrapper.vm.isError).toBe(true)
+    wrapper.vm.checkValidity();
+    expect(wrapper.vm.isError).toBe(true);
+  });
 
-    expect(wrapper.vm.formData.fullname).toBe('')
-    expect(wrapper.vm.formData.age).toBe('')
-    expect(wrapper.vm.formData.birthday).toBe('')
-    expect(wrapper.vm.formData.email).toBe('')
-    expect(wrapper.vm.formData.phonenumber).toBe('')
-    expect(wrapper.vm.formData.personality).toBe('')
-    expect(wrapper.vm.formData.gender).toBe('')
-    expect(wrapper.vm.formData.love).toEqual([])
-    expect(wrapper.vm.formData.motto).toBe('')
-  })
+  it('should validate form correctly - valid data', () => {
+    wrapper.setData({
+      formData: {
+        fullname: 'Sample Man',
+        nickname: 'Sample',
+        age: '25',
+        birthday: '2000-01-01',
+        email: 'sample@example.com',
+        phonenumber: '09123456789',
+        personality: 'Extrovert',
+        gender: 'Male',
+        love: ['Quality Time', 'Acts of Service', 'Words of Affirmation'],
+        motto: 'Live and Let Live'
+      }
+    });
+
+    wrapper.vm.checkValidity();
+    expect(wrapper.vm.isError).toBe(false);
+  });
 
   it('should handle event correctly', () => {
-    const formAddHandlingSpy = jest.spyOn(wrapper.vm, 'formAddHandling')
-    wrapper.vm.eventHandler('Submit')
-    expect(formAddHandlingSpy).toHaveBeenCalled()
-  })
-})
+    const formAddHandlingSpy = jest.spyOn(wrapper.vm, 'formAddHandling');
+    wrapper.vm.eventHandler('Submit');
+    expect(formAddHandlingSpy).toHaveBeenCalled();
+  });
+});
+
+
+
