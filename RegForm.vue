@@ -567,4 +567,118 @@ describe('RegistrationForm.vue', () => {
 });
 
 
+-----------------------------------------------------------
 
+Trial Black
+
+import { shallowMount } from '@vue/test-utils'
+import RegistrationForm from '@/components/pages/Slamboo/RegistrationForm.vue'
+
+describe('RegistrationForm.vue', () => {
+  let wrapper
+
+  beforeEach(() => {
+    wrapper = shallowMount(RegistrationForm)
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('if Component is called', () => {
+    expect(wrapper.exists()).toBeTruthy()
+  })
+
+  it('should call addFormData method and update formData', () => {
+    const mockData = { key: 'fullname', value: 'Sample Man' }
+    wrapper.vm.addFormData(mockData)
+    expect(wrapper.vm.formData.fullname).toBe('Sample Man')
+  })
+
+  it('should handle form submission correctly', () => {
+    const consoleSpy = jest.spyOn(console, 'log')
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
+    wrapper.vm.formData = {
+      fullname: 'Sample Man',
+      nickname: 'Sample',
+      age: 25,
+      birthday: '2000-01-01',
+      email: 'sample@example.com',
+      phonenumber: '09123456789',
+      personality: 'Extrovert',
+      gender: 'Male',
+      love: ['Quality Time', 'Acts of Service', 'Words of Affirmation'],
+      motto: 'Live and Let Live'
+    }
+
+    wrapper.vm.formAddHandling()
+
+    expect(consoleSpy).toHaveBeenCalledWith('Data Added:', wrapper.vm.formData)
+    expect(alertSpy).toHaveBeenCalledWith('Form Submitted!')
+    expect(wrapper.emitted().addKaibigan[0]).toEqual([wrapper.vm.formData])
+    expect(wrapper.vm.resetKaibiganId).toBe(1)
+
+    consoleSpy.mockRestore()
+    alertSpy.mockRestore()
+  })
+
+  it('should not submit the form if invalid', () => {
+    const consoleSpy = jest.spyOn(console, 'log')
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
+    
+    // Set invalid form data
+    wrapper.vm.formData = {
+      fullname: '',
+      nickname: '',
+      age: '',
+      birthday: '',
+      email: '',
+      phonenumber: '',
+      personality: '',
+      gender: '',
+      love: [],
+      motto: ''
+    }
+
+    wrapper.vm.formAddHandling()
+
+    expect(consoleSpy).not.toHaveBeenCalled()
+    expect(alertSpy).not.toHaveBeenCalled()
+    expect(wrapper.emitted().addKaibigan).toBeUndefined()
+  })
+
+  it('should reset formData correctly', () => {
+    wrapper.vm.resetKaibigan()
+    expect(wrapper.vm.resetKaibiganId).toBe(1)
+  })
+
+  it('should validate form correctly', () => {
+    wrapper.vm.formData = {
+      fullname: '',
+      nickname: '',
+      age: '',
+      birthday: '',
+      email: '',
+      phonenumber: '',
+      personality: '',
+      gender: '',
+      love: [],
+      motto: ''
+    }
+
+    wrapper.vm.checkValidity()
+
+    expect(wrapper.vm.isError).toBe(true)
+    expect(wrapper.vm.formData.fullname).toBe('')
+    expect(wrapper.vm.formData.age).toBe(0) // Assuming the action resets age to 0
+    expect(wrapper.vm.formData.birthday).toBe('')
+    expect(wrapper.vm.formData.email).toBe('')
+    expect(wrapper.vm.formData.phonenumber).toBe('')
+    expect(wrapper.vm.formData.personality).toBe('')
+    expect(wrapper.vm.formData.gender).toBe('')
+    expect(wrapper.vm.formData.love).toEqual([])
+    expect(wrapper.vm.formData.motto).toBe('')
+  })
+
+  it('should handle event correctly', () => {
+    const formAddHandlingSpy =
