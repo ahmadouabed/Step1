@@ -327,3 +327,162 @@ header {
   font-weight: bolder;
 }
 </style>
+
+
+---------------
+
+
+
+import { shallowMount } from '@vue/test-utils'
+import Todo from '@/components/Todo.vue'
+import { TODOBUTTONS, TODOFUNCTIONS } from '@/common/recipe/rButtonRecipe'
+import { TODOMODAL } from '@/common/recipe/rTextsRecipe'
+
+describe('Todo.vue', () => {
+  let wrapper
+
+  beforeEach(() => {
+    wrapper = shallowMount(Todo)
+  })
+
+  it('initializes with correct data', () => {
+    expect(wrapper.vm.buttons).toEqual(TODOBUTTONS)
+    expect(wrapper.vm.todoBTN).toEqual(TODOFUNCTIONS)
+    expect(wrapper.vm.modalTexts).toEqual(TODOMODAL)
+    expect(wrapper.vm.userInput).toBe('')
+    expect(wrapper.vm.searchInput).toBe('')
+    expect(wrapper.vm.todo).toEqual([])
+  })
+
+  it('adds a new todo item', async () => {
+    wrapper.setData({ userInput: 'New Todo' })
+    await wrapper.vm.addItem()
+    expect(wrapper.vm.todo.length).toBe(1)
+    expect(wrapper.vm.todo[0].value).toBe('New Todo')
+    expect(wrapper.vm.userInput).toBe('')
+  })
+
+  it('does not add an empty todo item', async () => {
+    wrapper.setData({ userInput: '   ' })
+    await wrapper.vm.addItem()
+    expect(wrapper.vm.todo.length).toBe(0)
+  })
+
+  it('deletes a todo item', async () => {
+    wrapper.setData({ todo: [{ id: 1, value: 'Test Todo', completed: false }] })
+    await wrapper.vm.deleteTodo(0)
+    expect(wrapper.vm.todo.length).toBe(0)
+  })
+
+  it('edits a todo item', async () => {
+    wrapper.setData({ todo: [{ id: 1, value: 'Old Todo', completed: false }] })
+    global.prompt = jest.fn(() => 'New Todo')
+    await wrapper.vm.editTodo(0)
+    expect(wrapper.vm.todo[0].value).toBe('New Todo')
+  })
+
+  it('toggles completed status of a todo item', async () => {
+    wrapper.setData({ todo: [{ id: 1, value: 'Test Todo', completed: false }] })
+    await wrapper.vm.toggleCompleted(0)
+    expect(wrapper.vm.todo[0].completed).toBe(true)
+    expect(wrapper.vm.todo[0].tag).toBe('Completed')
+    await wrapper.vm.toggleCompleted(0)
+    expect(wrapper.vm.todo[0].completed).toBe(false)
+    expect(wrapper.vm.todo[0].tag).toBeUndefined()
+  })
+
+  it('deletes all todo items', async () => {
+    wrapper.setData({ todo: [{ id: 1, value: 'Todo 1' }, { id: 2, value: 'Todo 2' }] })
+    await wrapper.vm.deleteAll()
+    expect(wrapper.vm.todo.length).toBe(0)
+  })
+
+  it('initializes data correctly', () => {
+    wrapper.setData({ userInput: '' })
+    expect(wrapper.vm.initializeData()).toBe(true)
+    wrapper.setData({ userInput: 'Test' })
+    expect(wrapper.vm.initializeData()).toBe(false)
+  })
+
+  it('handles click add task', async () => {
+    global.alert = jest.fn()
+    wrapper.setData({ userInput: '' })
+    await wrapper.vm.clickAddTask()
+    expect(global.alert).toHaveBeenCalledWith('Please Input a Note')
+
+    wrapper.setData({ userInput: 'New Todo' })
+    await wrapper.vm.clickAddTask()
+    expect(wrapper.vm.todo.length).toBe(1)
+  })
+
+  it('clears completed todos', async () => {
+    wrapper.setData({
+      todo: [
+        { id: 1, value: 'Todo 1', completed: true },
+        { id: 2, value: 'Todo 2', completed: false }
+      ]
+    })
+    await wrapper.vm.clearCompleted()
+    expect(wrapper.vm.todo.length).toBe(1)
+    expect(wrapper.vm.todo[0].value).toBe('Todo 2')
+  })
+
+  it('shows modal', () => {
+    wrapper.vm.$refs['my-modal'] = { show: jest.fn() }
+    wrapper.vm.showModal()
+    expect(wrapper.vm.$refs['my-modal'].show).toHaveBeenCalled()
+  })
+
+  it('handles newFunc actions', async () => {
+    global.alert = jest.fn()
+    global.confirm = jest.fn(() => true)
+
+    // Test clearAll
+    await wrapper.vm.newFunc('clearAll')
+    expect(global.alert).toHaveBeenCalledWith('Add To Do first before Clearing All')
+
+    wrapper.setData({ todo: [{ id: 1, value: 'Todo 1' }] })
+    await wrapper.vm.newFunc('clearAll')
+    expect(wrapper.vm.todo.length).toBe(0)
+
+    // Test clearComp
+    await wrapper.vm.newFunc('clearComp')
+    expect(global.alert).toHaveBeenCalledWith('Add To Do first before Clearing Completed')
+
+    // Test faq
+    wrapper.vm.showModal = jest.fn()
+    await wrapper.vm.newFunc('faq')
+    expect(wrapper.vm.showModal).toHaveBeenCalled()
+  })
+
+  it('gets correct style for todo items', () => {
+    const completedItem = { completed: true }
+    const incompleteItem = { completed: false }
+
+    expect(wrapper.vm.getStyle(completedItem)).toEqual({
+      color: '#888',
+      backgroundColor: '#f0f0f0'
+    })
+
+    expect(wrapper.vm.getStyle(incompleteItem)).toEqual({
+      color: '#000',
+      backgroundColor: '#fff'
+    })
+  })
+
+  it('filters todo items based on search input', async () => {
+    wrapper.setData({
+      todo: [
+        { id: 1, value: 'Todo 1' },
+        { id: 2, value: 'Todo 2' },
+        { id: 3, value: 'Different task' }
+      ],
+      searchInput: 'Todo'
+    })
+
+    expect(wrapper.vm.filterTodo.length).toBe(2)
+
+    wrapper.setData({ searchInput: 'Different' })
+    expect(wrapper.vm.filterTodo.length).toBe(1)
+  })
+})
