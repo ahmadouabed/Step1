@@ -1,0 +1,329 @@
+<template>
+  <b-container fluid class="mx-auto my-4 w-75">
+    <header><h1>Keeps</h1></header>
+
+    <div>
+      <b-input-group prepend="Keeps" class="mt-3">
+        <b-form-input v-model="userInput" placeholder="add to do..."></b-form-input>
+
+        <b-button variant="info" @click="clickAddTask">Add</b-button>
+      </b-input-group>
+
+      <b-modal ref="my-modal" hide-footer title="Keeps">
+        <div class="d-block">
+          <h3>FAQS</h3>
+
+          <p v-for="texts in Object.values(modalTexts)" :key="texts.id" class="">{{ texts }}</p>
+        </div>
+      </b-modal>
+    </div>
+
+    <b-row>
+      <b-col v-for="button in buttons" :key="button.id">
+        <component
+          class="py-3"
+          :is="button.componentName"
+          :key="button"
+          :input="button"
+          @change="newFunc"
+        ></component>
+      </b-col>
+    </b-row>
+
+    <div class="todo-table">
+      <div class="table-header">
+        <div class="table-cell">{{ this.todo.length === 0 ? 'No Task' : 'Task' }}</div>
+      </div>
+      <div class="table-body">
+        <div
+          class="table-row"
+          v-for="(item, index) in filterTodo"
+          :key="index"
+          :class="{ 'even-row': index % 2 === 0, completed: item.completed }"
+          :style="getStyle(item)"
+        >
+          <div class="table-cell">
+            {{ item.value }}
+            <span v-if="item.tag" class="badge bg-secondary">{{ item.tag }}</span>
+          </div>
+          <div class="table-cell2">
+            <b-button-group>
+              <b-button variant="success" @click="toggleCompleted(index)">
+                {{ item.completed ? 'Undo' : 'Complete' }}
+              </b-button>
+              <b-button variant="info" @click="editTodo(index)">Edit</b-button>
+              <b-button variant="danger" @click="confirmDelete(index)">Delete</b-button>
+            </b-button-group>
+          </div>
+        </div>
+      </div>
+    </div>
+  </b-container>
+</template>
+
+<script>
+import { TODOBUTTONS, TODOFUNCTIONS } from '@/common/recipe/rButtonRecipe'
+import CommonButton from '@/components/common/CommonButton.vue'
+import { TODOMODAL } from '@/common/recipe/rTextsRecipe'
+
+export default {
+  name: 'Todo',
+  components: { CommonButton },
+
+  data() {
+    return {
+      buttons: [...TODOBUTTONS],
+      todoBTN: [...TODOFUNCTIONS],
+      modalTexts: { ...TODOMODAL },
+      userInput: '',
+      searchInput: '',
+      todo: []
+    }
+  },
+
+  computed: {
+    /**
+     * Function to filter to do list to add them continously
+     */
+
+    filterTodo() {
+      return this.todo.filter((item) => item.value.includes(this.searchInput))
+    }
+  },
+
+  methods: {
+    /**
+     * Function to add the to do list of user
+     */
+
+    addItem() {
+      if (this.userInput.trim() !== '') {
+        const newItem = {
+          id: Math.random(),
+          value: this.userInput.trim(),
+          completed: false
+        }
+
+        this.todo.push(newItem)
+        this.userInput = ''
+      }
+    },
+
+    /**
+     * Funtion to have a confirmation before deleting a todo list
+     * @param {number} index - gets the index of filterTodo to determine the exact to do list
+     */
+
+    confirmDelete(index) {
+      const deleteConfirmation = confirm('Are you sure you want to delete this task?')
+      if (deleteConfirmation) {
+        this.deleteTodo(index)
+      }
+    },
+
+    /**
+     * Function to delete the to do list
+     * @param {number} index  - gets the index of filterTodo to determine the exact to do list
+     */
+
+    deleteTodo(index) {
+      this.todo.splice(index, 1)
+    },
+
+    /**
+     * Function to prompt user to edit the to do list using index and value of array
+     * @param {number} index - gets the index of filterTodo to determine the exact to do list
+     */
+
+    editTodo(index) {
+      const editedTodo = prompt('Edit the todo:', this.todo[index].value)
+      if (editedTodo !== null && editedTodo.trim() !== '') {
+        this.todo[index].value = editedTodo.trim()
+      }
+    },
+
+    /**
+     * Function to toggle the completed to do list and maps a new array to make the item.tag complete
+     * @param {number} index - gets the index of filterTodo to determine the exact to do list
+     */
+
+    toggleCompleted(index) {
+      this.todo[index].completed = !this.todo[index].completed
+
+      this.todo = this.todo.map((item) => {
+        if (item.completed) {
+          item.tag = 'Completed'
+        } else {
+          delete item.tag
+        }
+        return item
+      })
+    },
+
+    /**
+     * Function to loop array and if array is greater than 0 it will delete all the to do list data
+     */
+
+    deleteAll() {
+      while (this.todo.length > 0) {
+        this.todo.pop()
+      }
+    },
+
+    /**
+     * Function to return if userinput is empty
+     * @return {boolean} - return the userinput when empty
+     */
+
+    initializeData() {
+      return this.userInput === ''
+    },
+
+    /**
+     * Function to alert user if userinput is empty before adding item
+     */
+
+    clickAddTask() {
+      if (this.initializeData() || this.userInput.trim() === '') {
+        alert('Please Input a Note')
+      } else {
+        this.addItem()
+      }
+    },
+
+    /**
+     * Function to clear all completed to do list
+     */
+
+    clearCompleted() {
+      this.todo = this.todo.filter((item) => !item.completed)
+    },
+
+    /**
+     * Function to reference my modal
+     */
+
+    showModal() {
+      this.$refs['my-modal'].show()
+    },
+
+    /**
+     * Function to handle validations of user when clicking buttons
+     * @param {string} action - gets the action type of buttons
+     */
+    newFunc(action) {
+      const actions = {
+        clearAll: () => {
+          if (this.todo.length === 0) {
+            alert('Add To Do first before Clearing All')
+          } else {
+            const remove = confirm('Are you sure you want to Clear All?')
+            if (remove) this.deleteAll()
+          }
+        },
+        clearComp: () => {
+          if (this.todo.length === 0) {
+            alert('Add To Do first before Clearing Completed')
+          } else if (this.toggleCompleted === false) {
+            alert('Clear First')
+          } else {
+            this.clearCompleted()
+          }
+        },
+        faq: () => {
+          this.showModal()
+        }
+      }
+
+      if (actions[action]) {
+        actions[action]()
+      }
+    },
+    /**
+     * Function to set the color and background of completed items
+     * @param {number} item - gets the item of the filterTodo
+     * @returns {object} - returns the color and backgroudColor if item is completed
+     */
+
+    getStyle(item) {
+      return {
+        color: item.completed ? '#888' : '#000',
+        backgroundColor: item.completed ? '#f0f0f0' : '#fff'
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+.bg-secondary {
+  background-color: #198754 !important;
+}
+
+header {
+  background-color: rgb(7, 179, 185);
+  color: white;
+  padding: 10px 0;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.todo-table {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.table-header {
+  font-weight: bold;
+  display: flex;
+  background-color: #f0f0f0;
+  padding: 10px;
+}
+
+.table-cell {
+  flex: 1;
+  padding: 10px;
+  font-size: 18px;
+  word-wrap: break-word;
+}
+
+.table-cell2 {
+  padding: 10px;
+  font-size: 18px;
+  word-wrap: break-word;
+}
+
+.table-body {
+  display: grid;
+  word-break: break-word;
+}
+
+.table-row {
+  display: flex;
+  border-top: 1px solid #ccc;
+  word-wrap: break-word;
+}
+
+.even-row {
+  background-color: #f9f9f9;
+}
+
+.completed {
+  text-decoration: line-through;
+  background-color: #f0f0f0;
+}
+
+.completed-cell {
+  color: #888;
+}
+
+.btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.faq {
+  font-weight: bolder;
+}
+</style>
