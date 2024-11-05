@@ -330,3 +330,136 @@ p {
   height: auto;
 }
 </style>
+
+
+------------------------
+
+
+import { shallowMount } from '@vue/test-utils'
+import BmiComp from '@/components/BmiComp.vue'
+import { BMI_INPUT } from '@/common/recipe/rTextInputRecipe'
+import { BMIBUTTONS } from '@/common/recipe/rButtonRecipe'
+import { BMITEMPLATE, BMIOUTPUT } from '@/common/recipe/rFormRecipe'
+
+describe('BmiComp.vue', () => {
+  let wrapper
+
+  beforeEach(() => {
+    wrapper = shallowMount(BmiComp)
+  })
+
+  it('initializes with correct data', () => {
+    expect(wrapper.vm.items).toEqual(BMI_INPUT)
+    expect(wrapper.vm.BMI_BTN).toEqual(BMIBUTTONS)
+    expect(wrapper.vm.bmiData).toEqual(BMITEMPLATE)
+    expect(wrapper.vm.bmiOutput).toEqual(BMIOUTPUT)
+  })
+
+  it('adds form data correctly', () => {
+    wrapper.vm.addFormData({ key: 'name', value: 'John' }, 1)
+    expect(wrapper.vm.bmiData.firstPerson.name).toBe('John')
+
+    wrapper.vm.addFormData({ key: 'weight', value: '70' }, 2)
+    expect(wrapper.vm.bmiData.secondPerson.weight).toBe('70')
+  })
+
+  it('calculates BMI correctly', () => {
+    wrapper.vm.bmiData.firstPerson = { weight: '70', height: '170' }
+    wrapper.vm.bmiData.secondPerson = { weight: '80', height: '180' }
+    wrapper.vm.bmiCalc()
+    expect(wrapper.vm.bmiOne).toBeCloseTo(24.22, 2)
+    expect(wrapper.vm.bmiTwo).toBeCloseTo(24.69, 2)
+  })
+
+  it('classifies BMI correctly', () => {
+    expect(wrapper.vm.classifyBMI(17)).toBe('Underweight')
+    expect(wrapper.vm.classifyBMI(22)).toBe('Healthy Weight')
+    expect(wrapper.vm.classifyBMI(27)).toBe('Overweight')
+    expect(wrapper.vm.classifyBMI(32)).toBe('Obesity')
+  })
+
+  it('compares BMI correctly', () => {
+    wrapper.vm.bmiData.firstPerson.name = 'John'
+    wrapper.vm.bmiData.secondPerson.name = 'Jane'
+    wrapper.vm.bmiOne = 24
+    wrapper.vm.bmiTwo = 22
+    wrapper.vm.compareBMI()
+    expect(wrapper.vm.bmiCompare).toBe('John has greater BMI: 24.00')
+
+    wrapper.vm.bmiOne = 22
+    wrapper.vm.bmiTwo = 22
+    wrapper.vm.compareBMI()
+    expect(wrapper.vm.bmiCompare).toBe('John is Equal to BMI: 22.00')
+
+    wrapper.vm.bmiOne = 20
+    wrapper.vm.bmiTwo = 22
+    wrapper.vm.compareBMI()
+    expect(wrapper.vm.bmiCompare).toBe('Jane has greater BMI: 22.00')
+  })
+
+  it('outputs data correctly', () => {
+    wrapper.vm.bmiData.firstPerson.name = 'John'
+    wrapper.vm.bmiData.secondPerson.name = 'Jane'
+    wrapper.vm.bmiOne = 24
+    wrapper.vm.bmiTwo = 22
+    wrapper.vm.class1 = 'Healthy Weight'
+    wrapper.vm.class2 = 'Healthy Weight'
+    wrapper.vm.outputData()
+    expect(wrapper.vm.bmiOutput.user1).toEqual({
+      name: 'John',
+      bmi: '24.00',
+      classification: 'Healthy Weight'
+    })
+    expect(wrapper.vm.bmiOutput.user2).toEqual({
+      name: 'Jane',
+      bmi: '22.00',
+      classification: 'Healthy Weight'
+    })
+  })
+
+  it('validates user input correctly', () => {
+    const alertMock = jest.spyOn(window, 'alert').mockImplementation(() => {})
+
+    wrapper.vm.displayData('reset')
+    expect(wrapper.vm.bmiData).toEqual(BMITEMPLATE)
+
+    wrapper.vm.displayData('compute')
+    expect(alertMock).toHaveBeenCalledWith('No Input, please fill out the fields and use positive integers only')
+
+    wrapper.vm.bmiData.firstPerson = { name: 'John!', weight: '70', height: '170' }
+    wrapper.vm.bmiData.secondPerson = { name: 'Jane', weight: '60', height: '160' }
+    wrapper.vm.displayData('compute')
+    expect(alertMock).toHaveBeenCalledWith('Please type normal character, No Special Characters')
+
+    wrapper.vm.bmiData.firstPerson.name = 'John'
+    wrapper.vm.displayData('compute')
+    expect(alertMock).toHaveBeenCalledWith('BMI Computed')
+
+    wrapper.vm.displayData('compare')
+    expect(wrapper.vm.cardDetails).toBe(true)
+    expect(wrapper.vm.showAlert).toBe(true)
+
+    alertMock.mockRestore()
+  })
+
+  it('dismisses cards correctly', () => {
+    wrapper.vm.dismissCards()
+    expect(wrapper.vm.cardDetails).toBe(false)
+    expect(wrapper.vm.showAlert).toBe(false)
+  })
+
+  it('resets BMI input correctly', () => {
+    wrapper.vm.bmiData.firstPerson = { name: 'John', weight: '70', height: '170' }
+    wrapper.vm.bmiData.secondPerson = { name: 'Jane', weight: '60', height: '160' }
+    wrapper.vm.cardDetails = true
+    wrapper.vm.showAlert = true
+    wrapper.vm.resetbmiId = 0
+
+    wrapper.vm.resetBmi()
+
+    expect(wrapper.vm.bmiData).toEqual(BMITEMPLATE)
+    expect(wrapper.vm.cardDetails).toBe(false)
+    expect(wrapper.vm.showAlert).toBe(false)
+    expect(wrapper.vm.resetbmiId).toBe(1)
+  })
+})
