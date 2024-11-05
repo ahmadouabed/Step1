@@ -1,0 +1,395 @@
+<template>
+  <div>
+    <b-alert
+      class="m-3"
+      v-model="showAlertInputField"
+      variant="danger"
+      dismissible
+      @dismissed="dismissAlertValidation"
+      >{{ alertMessage }}</b-alert
+    >
+
+    <h1 class="text-center py-3">{{ headingLabel }}</h1>
+
+    <b-card-group deck class="mx-auto mb-4 w-50">
+      <b-card class="my-3" v-for="userIndex in 2" :key="userIndex">
+        <h2 class="pb-2">{{ user }} {{ userIndex }}</h2>
+        <b-row cols="1">
+          <b-col class="mb-3" v-for="item in items" :key="item.id">
+            <component
+              :is="item.componentName"
+              :key="itemKey"
+              :input="item"
+              @formData="addUserData($event, userIndex)"
+            ></component>
+          </b-col>
+        </b-row>
+      </b-card>
+    </b-card-group>
+
+    <b-container fluid class="my-4 w-50">
+      <b-row class="pb-2">
+        <b-col class="pb-3" v-for="bmiButton in bmiButtons" :key="bmiButton.id"
+          ><common-button
+            :is="bmiButton.componentName"
+            :input="bmiButton"
+            :key="bmiButton.id"
+            @action="getButtonFunction"
+          >
+            {{ bmiButton.display.label }}
+          </common-button>
+        </b-col>
+      </b-row></b-container
+    >
+    <b-container fluid class="my-4 w-100" v-if="compareContainer">
+      <b-container class="my-4 w-50">
+        <b-alert
+          class="text-break"
+          v-model="compareContainer"
+          variant="info"
+          dismissible
+          @dismissed="dismissBmiMessage"
+          >{{ bmiAlertMessage }}</b-alert
+        >
+      </b-container>
+
+      <b-card-group deck class="mx-auto mb-4 w-50">
+        <b-card class="my-3" v-for="userIndex in 2" :key="userIndex" header="BMI results">
+          <h2 class="pb-2">{{ user }} {{ userIndex }}</h2>
+          <b-row cols="1">
+            <ul v-if="userIndex === 1">
+              <li v-for="(bmiInput, categories) in userComparisonData.userOne" :key="bmiInput">
+                <b-card
+                  ><strong>{{ categories }}:</strong> {{ bmiInput }}</b-card
+                >
+              </li>
+            </ul>
+            <ul v-if="userIndex === 2">
+              <li v-for="(bmiInput, categories) in userComparisonData.userTwo" :key="bmiInput">
+                <b-card
+                  ><strong>{{ categories }}:</strong> {{ bmiInput }}</b-card
+                >
+              </li>
+            </ul>
+          </b-row>
+        </b-card>
+      </b-card-group>
+    </b-container>
+  </div>
+</template>
+
+<script>
+import CommonButton from '@/components/common/CommonButton.vue'
+import CommonTextInput from '@/components/common/CommonTextInput.vue'
+import CommonLabel from '@/components/common/CommonLabel.vue'
+import { BMI_TEXTINPUTLABEL_PROPERTIES } from '@/common/recipe/rTextInputLabel'
+import { BMI_BUTTON } from '@/common/recipe/rButton'
+import { USER_INITIAL_DATA } from '@/common/recipe/rBMIData'
+import { USER_COMPARISON_DATA } from '@/common/recipe/rBMIData'
+
+export default {
+  name: 'BMIComparison',
+  components: { CommonButton, CommonTextInput, CommonLabel },
+  data() {
+    return {
+      items: [...BMI_TEXTINPUTLABEL_PROPERTIES],
+      bmiButtons: [...BMI_BUTTON],
+      alertMessage: '',
+      bmiAlertMessage: '',
+      headingLabel: 'BMI Comparison',
+      showAlertInputField: false,
+      showAlertMessageField: false,
+      compareContainer: false,
+      userData: USER_INITIAL_DATA,
+      userComparisonData: USER_COMPARISON_DATA,
+      userOneBMI: 0,
+      userTwoBMI: 0,
+      user: 'User',
+      clickedCalcButton: false,
+      clickedCompareButton: false,
+      itemKey: 0
+    }
+  },
+  computed: {
+    /**
+     * Function use for computing both BMI data
+     * @return {Object} call the computeBMI function and store to the object
+     */
+    computeUserBMI() {
+      return {
+        user1: this.computeBMI(this.userData.userOne.weight, this.userData.userOne.height),
+        user2: this.computeBMI(this.userData.userTwo.weight, this.userData.userTwo.height)
+      }
+    },
+    /**
+     * Function used to classify the computed BMI
+     * @return {Object} store the classified BMI to respective key
+     */
+    classifyUserBMI() {
+      return {
+        userOneClass: this.classifyBMI(this.computeUserBMI.user1),
+        userTwoClass: this.classifyBMI(this.computeUserBMI.user2)
+      }
+    }
+  },
+
+  methods: {
+    /**
+     * Function to check the right array index for each data
+     * @param {string} data - key reference for the USER_INITIAL_DATA
+     * @param {string } userIndex - used of storing the inputed data from the input field
+     */
+    addUserData(data, userIndex) {
+      const user = this.userData
+      if (userIndex === 1) {
+        user.userOne[data.key] = data.value
+      } else if (userIndex === 2) {
+        user.userTwo[data.key] = data.value
+      }
+    },
+    /**
+     * Function to check the right array index for each data
+     * @param {string} data - key reference for the USER_COMPARISON_DATA
+     * @param {string } userIndex - used of storing the inputed data from the list component
+     */
+    addUserComparisonData(data, userIndex) {
+      const userCompare = this.userComparisonData
+      if (userIndex === 1) {
+        userCompare.userOne[data.key] = data.value
+      } else if (userIndex === 2) {
+        userCompare.userTwo[data.key] = data.value
+      }
+    },
+
+    /**
+     * Function use for handling the input field to prevent on computing empty field
+     * @returns {boolean} check if the input field has data inputed or negative numbers inputed
+     */
+    inputTextValidation() {
+      const regexSpecial = /^[a-zA-Z\s]+$/
+      const userData = this.userData
+
+      const noInputedData =
+        !userData.userOne.name ||
+        !userData.userTwo.name ||
+        !userData.userOne.weight ||
+        !userData.userTwo.weight ||
+        !userData.userOne.height ||
+        !userData.userTwo.height
+
+      const negativeNumbers =
+        userData.userOne.weight <= 0 ||
+        userData.userTwo.weight <= 0 ||
+        userData.userOne.height <= 0 ||
+        userData.userTwo.height <= 0
+
+      const weightLimit = userData.userOne.weight < 0.2 || userData.userTwo.weight < 0.2
+      const heightLimit = userData.userOne.height < 24.8 || userData.userTwo.height < 24.8
+
+      const regexCondition =
+        !regexSpecial.test(userData.userOne.name) || !regexSpecial.test(userData.userTwo.name)
+
+      const validationRules = [
+        {
+          condition: noInputedData,
+          message: 'All fields must be filled for both users'
+        },
+        {
+          condition: negativeNumbers,
+          message: 'Weight and Height should be positive integer only'
+        },
+        {
+          condition: regexCondition,
+          message: 'No special characters or numbers for name input field'
+        },
+        {
+          condition: weightLimit,
+          message: 'Weight should be not exceed less than 0.2kg (weight of the smallest baby)'
+        },
+        {
+          condition: heightLimit,
+          message: 'Height should be not exceed less than 24.8cm (height of the smallest baby)'
+        }
+      ]
+
+      const notValid = validationRules.some((validity) => {
+        if (validity.condition) {
+          this.alertMessage = validity.message
+          this.showAlertInputField = true
+          this.clickedCalcButton = false
+          return true
+        } else {
+          return false
+        }
+      })
+
+      return notValid
+    },
+
+    /**
+     * Function used for storing the computed BMI and printing it in console.
+     */
+    computeUserData() {
+      const userData = this.userData
+      this.userOneBMI = this.computeUserBMI.user1
+      this.userTwoBMI = this.computeUserBMI.user2
+      const firstUser = { ...userData.userOne, BMI: this.userOneBMI }
+      const secondUser = { ...userData.userTwo, BMI: this.userTwoBMI }
+      console.log('User 1', firstUser)
+      console.log('User 2', secondUser)
+    },
+
+    /**
+     * Function used for the functionality of the buttons
+     * @param {string} actionType - use to differentiate the buttons used.
+     */
+    getButtonFunction(actionType) {
+      const userData = this.userData
+      const clickedCalcButton = this.clickedCalcButton
+      const clickedCompareButton = this.clickedCompareButton
+
+      if (this.inputTextValidation() && actionType === 'calculate') {
+        return this.inputTextValidation
+      } else if (!this.inputTextValidation() && actionType === 'calculate' && !clickedCalcButton) {
+        this.computeUserData()
+        this.dismissAlertValidation()
+        this.clickedCalcButton = true
+      } else if (!this.inputTextValidation() && actionType === 'calculate' && clickedCalcButton) {
+        this.alertMessage = 'The BMI is already calculated, click Reset to calculate new data'
+        this.showAlertInputField = true
+      } else if (this.inputTextValidation() && actionType === 'compare') {
+        return (this.alertMessage = 'No data to compare.')
+      } else if (!clickedCalcButton && actionType === 'compare') {
+        this.alertMessage = 'Calculate first to see the comparison'
+        this.showAlertInputField = true
+      } else if (clickedCalcButton && actionType === 'compare' && clickedCompareButton) {
+        this.alertMessage = 'BMI data is already compared, click Reset to compare new data'
+        this.compareContainer = true
+        this.showAlertInputField = true
+      } else if (clickedCalcButton && actionType === 'compare' && !clickedCompareButton) {
+        this.bmiAlertMessage = this.getBmiAlertMessage(
+          userData.userOne.name,
+          userData.userTwo.name,
+          this.computeUserBMI.user1,
+          this.computeUserBMI.user2
+        )
+        this.storeComparedData()
+        this.compareContainer = true
+        this.clickedCompareButton = true
+        this.showAlertMessageField = true
+        return
+      } else if (actionType === 'reset') {
+        this.resetData()
+      }
+    },
+
+    /**
+     * Function use for finding the category of the computed BMI
+     * @param {number} bmi - the computed BMI of the user 1 and user 2
+     * @return {string} check if the computed BMI of the user is fall under the condition
+     */
+
+    classifyBMI(bmi) {
+      const classification = [
+        { limit: 18.5, level: 'Underweight' },
+        { limit: 25.0, level: 'Normal' },
+        { limit: 30.0, level: 'Overweight' },
+        { limit: 35.0, level: 'Obesity I' },
+        { limit: 40.0, level: 'Obesity II' },
+        { limit: Infinity, level: 'Extreme Obesity' }
+      ]
+
+      for (let classify of classification) {
+        if (bmi < classify.limit) {
+          return classify.level
+        }
+      }
+    },
+    /**
+     * Function use to change the alert message based on the given condition
+     * @param {string} name1 -  the input name for the user1
+     * @param {string} name2 - the input name for the user2
+     * @param {number} bmi1 - the computed bmi for user 1
+     * @param {number} bmi2 - the computed bmi for user 2
+     * @return {string} alert message based on the condition which user has a greater bmi
+     */
+    getBmiAlertMessage(name1, name2, bmi1, bmi2) {
+      bmi1 = Number(bmi1)
+      bmi2 = Number(bmi2)
+      if (bmi1 > bmi2) {
+        return `${name1} has greater BMI of ${bmi1}`
+      } else if (bmi2 > bmi1) {
+        return `${name2} has greater BMI of ${bmi2}`
+      } else if (bmi2 == bmi1) {
+        return `${name1} and ${name2} have the same BMI of ${bmi1}`
+      }
+    },
+    /**
+     * Function use to store the result in the computing and classifying the BMI to the new object
+     */
+    storeComparedData() {
+      const userCompare = this.userComparisonData
+      const userData = this.userData
+      userCompare.userOne.BMI = this.computeUserBMI.user1
+      userCompare.userTwo.BMI = this.computeUserBMI.user2
+      userCompare.userOne.category = this.classifyUserBMI.userOneClass
+      userCompare.userTwo.category = this.classifyUserBMI.userTwoClass
+      userCompare.userOne.name = userData.userOne.name
+      userCompare.userTwo.name = userData.userTwo.name
+    },
+
+    /**
+     * Function use for the closing the compare container
+     * @return {boolean} make the compareContainer value into false to hide the compare section
+     */
+    dismissBmiMessage() {
+      return (this.compareContainer = false)
+    },
+    /**
+     * Function use for the closing the alert message for validation
+     * @return {boolean} make the showAlertInputField value into false to hide the alert message for validation
+     */
+    dismissAlertValidation() {
+      return (this.showAlertInputField = false)
+    },
+    /**
+     * Function use for resetting the input text field and the data field
+     */
+    resetData() {
+      this.userData = {
+        userOne: {
+          name: '',
+          weight: '',
+          height: ''
+        },
+        userTwo: {
+          name: '',
+          weight: '',
+          height: ''
+        }
+      }
+      this.itemKey += 1
+      this.dismissAlertValidation()
+      this.dismissBmiMessage()
+      this.clickedCompareButton = false
+      this.clickedCalcButton = false
+    },
+    /**
+     * Function use for storing the formula of computing BMI
+     * @param {number} weight - weight in kg of the user
+     * @param {number} height - height in cm of the user
+     * @return {number} formula for solving the BMI
+     */
+    computeBMI(weight, height) {
+      return (weight / (height / 100) ** 2).toFixed(2)
+    }
+  }
+}
+</script>
+
+<style scoped>
+li {
+  list-style: none;
+  text-transform: capitalize;
+}
+</style>
