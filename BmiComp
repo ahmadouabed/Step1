@@ -1,0 +1,332 @@
+<template>
+  <div>
+    <header>
+      <h1>BMI Comparison</h1>
+    </header>
+
+    <b-container>
+      <b-row cols="3" v-for="personId in 2" :key="personId.id">
+        <b-col v-for="(item, id) in items" :key="id">
+          <component
+            :is="item.componentName"
+            :input="item"
+            @formData="addFormData($event, personId)"
+            :key="resetbmiId"
+          ></component>
+        </b-col>
+      </b-row>
+
+      <b-row>
+        <b-col v-for="btn in BMI_BTN" :key="btn.id">
+          <common-button class="button" :input="btn" @change="displayData"></common-button>
+        </b-col>
+      </b-row>
+
+      <b-container
+        v-if="cardDetails"
+        class="d-flex flex-column justify-content-center align-items-center"
+      >
+        <b-alert
+          style="height: 60px; text-transform: capitalize"
+          v-model="cardDetails"
+          dismissible
+          @dismissed="dismissCards"
+          class="alert"
+          >{{ bmiCompare }}</b-alert
+        >
+
+        <b-row cols="2" class="output">
+          <b-col>
+            <b-list-group>
+              <b-list-group-item v-for="(name, label) in bmiOutput.user1" :key="name">
+                <strong class="text-capitalize">{{ label }}:</strong> {{ name }}
+              </b-list-group-item>
+            </b-list-group>
+          </b-col>
+
+          <b-col>
+            <b-list-group>
+              <b-list-group-item v-for="(name, label) in bmiOutput.user2" :key="name">
+                <strong class="text-capitalize">{{ label }}:</strong> {{ name }}
+              </b-list-group-item>
+            </b-list-group>
+          </b-col>
+        </b-row>
+      </b-container>
+    </b-container>
+  </div>
+</template>
+
+<script>
+import { BMI_INPUT } from '@/common/recipe/rTextInputRecipe'
+import CommonTextInput from '@/components/common/CommonTextInput.vue'
+import { BMIBUTTONS } from '@/common/recipe/rButtonRecipe'
+import CommonButton from '@/components/common/CommonButton.vue'
+import { BMITEMPLATE, BMIOUTPUT } from '@/common/recipe/rFormRecipe'
+
+export default {
+  name: 'BmiComp',
+  components: {
+    CommonButton,
+    CommonTextInput
+  },
+  data() {
+    return {
+      items: [...BMI_INPUT],
+      BMI_BTN: BMIBUTTONS,
+      bmiData: BMITEMPLATE,
+      bmiOutput: BMIOUTPUT,
+      weightOne: '',
+      weightTwo: '',
+      heightOne: '',
+      heightTwo: '',
+      bmiOne: 0,
+      bmiTwo: 0,
+      bmiCompare: '',
+      showAlert: false,
+      class1: '',
+      class2: '',
+      cardDetails: false,
+      resetbmiId: 0
+    }
+  },
+
+  methods: {
+    /**
+     * Function to add data by getting data and personId as assign in array
+     * @param {object} data - get the event of the mouse click
+     * @param {number} personId - get the data from person 1 and person 2
+     */
+
+    addFormData(data, personId) {
+      if (personId === 1) {
+        this.bmiData.firstPerson[data.key] = data.value
+      } else if (personId === 2) {
+        this.bmiData.secondPerson[data.key] = data.value
+      }
+    },
+
+    /**
+     * Fucntion to calculate BMI and display in console log
+     */
+
+    bmiCalc() {
+      this.weightOne = parseInt(this.bmiData.firstPerson.weight)
+      this.weightTwo = parseInt(this.bmiData.secondPerson.weight)
+      this.heightOne = parseInt(this.bmiData.firstPerson.height) / 100
+      this.heightTwo = parseInt(this.bmiData.secondPerson.height) / 100
+      this.bmiOne = this.weightOne / (this.heightOne * this.heightOne)
+      this.bmiTwo = this.weightTwo / (this.heightTwo * this.heightTwo)
+
+      const p1 = { ...this.bmiData.firstPerson, BMI: this.bmiOne.toFixed(2) }
+      const p2 = { ...this.bmiData.secondPerson, BMI: this.bmiTwo.toFixed(2) }
+      console.log('Person 1', p1)
+      console.log('Person 2', p2)
+    },
+
+    /**
+     * Function to get classification
+     * @param {number} bmi - to get the bmi of users
+     */
+
+    classifyBMI(bmi) {
+      if (bmi < 18.5) {
+        return 'Underweight'
+      } else if (bmi >= 18.5 && bmi <= 24.9) {
+        return 'Healthy Weight'
+      } else if (bmi >= 25 && bmi <= 29.9) {
+        return 'Overweight'
+      } else {
+        return 'Obesity'
+      }
+    },
+
+    /**
+     * Function to compare BMI
+     */
+
+    compareBMI() {
+      if (this.bmiOne > this.bmiTwo) {
+        this.bmiCompare = `${this.bmiData.firstPerson.name} has greater BMI: ${this.bmiOne.toFixed(2)}`
+      } else if (this.bmiOne === this.bmiTwo) {
+        this.bmiCompare = `${this.bmiData.firstPerson.name} is Equal to BMI: ${this.bmiOne.toFixed(2)}`
+      } else {
+        this.bmiCompare = `${this.bmiData.secondPerson.name} has greater BMI: ${this.bmiTwo.toFixed(2)}`
+      }
+
+      this.class1 = this.classifyBMI(this.bmiOne)
+      this.class2 = this.classifyBMI(this.bmiTwo)
+
+      console.log(this.class1)
+      console.log(this.class2)
+    },
+
+    /**
+     * Function to assign data to display in card
+     */
+
+    outputData() {
+      this.bmiOutput.user1.name = this.bmiData.firstPerson.name
+      this.bmiOutput.user1.bmi = this.bmiOne.toFixed(2)
+      this.bmiOutput.user1.classification = this.class1
+
+      this.bmiOutput.user2.name = this.bmiData.secondPerson.name
+      this.bmiOutput.user2.bmi = this.bmiTwo.toFixed(2)
+      this.bmiOutput.user2.classification = this.class2
+    },
+
+    /**
+     * Function to Validate user input
+     * @param {string} action - to get the action button of user
+     */
+
+    displayData(action) {
+      const noInput =
+        this.bmiData.firstPerson.name === '' ||
+        this.bmiData.firstPerson.weight === '' ||
+        this.bmiData.firstPerson.height === '' ||
+        this.bmiData.secondPerson.name === '' ||
+        this.bmiData.secondPerson.weight === '' ||
+        this.bmiData.secondPerson.height === '' ||
+        this.bmiData.firstPerson.weight <= 0 ||
+        this.bmiData.firstPerson.height <= 0 ||
+        this.bmiData.secondPerson.weight <= 0 ||
+        this.bmiData.secondPerson.height <= 0
+
+      const zeroData = this.bmiOne || this.bmiTwo
+
+      const specialCharacter = /^[a-zA-ZäöüÄÖÜ\s]*$/
+
+      if (action === 'reset') {
+        this.resetBmi()
+      } else if (noInput && action === 'compute') {
+        alert('No Input, please fill out the fields and use positive integers only')
+      } else if (
+        !specialCharacter.test(this.bmiData.firstPerson.name) ||
+        !specialCharacter.test(this.bmiData.secondPerson.name)
+      ) {
+        alert('Please type normal character, No Special Characters')
+      } else if (noInput && action === 'compare') {
+        alert('No Data to Compare, please fill out fields and click compute')
+      } else if (action === 'compute') {
+        this.bmiCalc()
+
+        alert('BMI Computed')
+      } else if (action === 'compare') {
+        if (zeroData === 0) {
+          alert('Press Compute First')
+        } else {
+          this.compareBMI()
+          this.outputData()
+          this.cardDetails = true
+          this.showAlert = true
+        }
+      }
+    },
+
+    /**
+     * Function to close cards
+     * @return {boolean} - return false so that card and alert will close
+     */
+
+    dismissCards() {
+      this.cardDetails = false
+      this.showAlert = false
+      return
+    },
+    /**
+     * Function to reset BMI Input
+     *
+     */
+
+    resetBmi() {
+      this.bmiData = {
+        firstPerson: {
+          name: '',
+          weight: '',
+          height: ''
+        },
+        secondPerson: {
+          name: '',
+          weight: '',
+          height: ''
+        }
+      }
+
+      this.cardDetails = false
+      this.showAlert = false
+      this.resetbmiId += 1
+    }
+  }
+}
+</script>
+
+<style scoped>
+header {
+  padding: 1rem;
+
+  color: rgb(0, 0, 0);
+  text-align: center;
+}
+
+.output {
+  word-wrap: break-word;
+}
+
+h1 {
+  font-size: 250%;
+}
+.button {
+  margin-top: 20px;
+  padding: 10px;
+}
+
+.card {
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  background: rgba(217, 217, 217, 0.58);
+  border: 1px solid white;
+
+  backdrop-filter: blur(6px);
+  border-radius: 17px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.5s;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  user-select: none;
+  font-weight: bolder;
+
+  margin-top: 20px;
+  color: black;
+  word-wrap: break-word;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+p {
+  text-align: center;
+}
+
+.card:hover {
+  border: 1px solid black;
+  transform: scale(1.05);
+}
+
+.card:active {
+  transform: scale(0.95) rotateZ(1.7deg);
+}
+
+.alert {
+  margin-top: 20px;
+  padding-bottom: 70px;
+
+  width: 100%;
+  word-wrap: break-word;
+  height: auto;
+}
+</style>
