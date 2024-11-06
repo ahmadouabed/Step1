@@ -1,0 +1,163 @@
+<template>
+  <b-container fluid class="login-page d-flex justify-content-center align-items-center w-100">
+    <b-card>
+      <b-tabs card>
+        <b-tab title="Sign In">
+          <b-form @submit.prevent="signIn">
+            <label for="username">Username</label>
+            <b-form-input id="username" v-model="username" type="text"></b-form-input
+            ><label for="password">Password</label>
+            <b-form-input id="password" v-model="password" type="password"></b-form-input>
+            <b-button type="submit" class="w-100 mt-3">Sign In</b-button>
+          </b-form>
+        </b-tab>
+        <b-tab title="Sign Up">
+          <b-form @submit.prevent="signUp">
+            <label for="newUsername">Username</label>
+            <b-form-input id="newUsername" v-model="newUsername" type="text"></b-form-input>
+            <label for="newEmail">Email</label>
+            <b-form-input id="newEmail" v-model="newEmail" type="text" required></b-form-input>
+            <label for="newPassword">Password</label>
+            <b-form-input id="newPassword" v-model="newPassword" type="password"></b-form-input>
+            <b-button type="submit" class="w-100 mt-3">Sign Up</b-button>
+          </b-form>
+        </b-tab>
+      </b-tabs>
+    </b-card>
+  </b-container>
+</template>
+<script>
+export default {
+  props: {
+    userAccounts: { type: Array, required: true }
+  },
+  data() {
+    return {
+      username: '',
+      password: '',
+      newUsername: '',
+      newPassword: '',
+      newEmail: ''
+    }
+  },
+  methods: {
+    signIn() {
+      this.$emit('signIn', { username: this.username, password: this.password })
+    },
+
+    signUp() {
+      this.$emit('signUp', {
+        username: this.newUsername,
+        password: this.newPassword,
+        email: this.newEmail
+      })
+    }
+  }
+}
+</script>
+
+<style scoped>
+.login-page {
+  height: 100vh;
+}
+</style>
+
+-------------------------
+
+<template>
+  <div>
+    <login-view
+      v-if="!login"
+      :accounts="accounts"
+      @signIn="signInUser"
+      @signUp="signUpUser"
+    ></login-view>
+
+    <div v-else>
+      <b-navbar toggleable="lg" type="dark" variant="success" sticky="top" class="p-3">
+        <b-navbar-brand
+          ><h1 class="fw-bold text-light">{{ logo }}</h1></b-navbar-brand
+        >
+
+        <b-navbar-toggle target="navbar-toggle-collapse" variant="light">
+          <i class="bi bi-list text-light"></i>
+        </b-navbar-toggle>
+
+        <b-collapse id="navbar-toggle-collapse" class="flex-grow-0 flex-wrap pl-5" is-nav>
+          <b-navbar-nav v-for="item in items" :key="item.id" class="ml-auto">
+            <component :is="item.componentName" :key="item.id" :input="item"></component>
+          </b-navbar-nav>
+        </b-collapse>
+      </b-navbar>
+
+      <router-view></router-view>
+    </div>
+  </div>
+</template>
+
+<script>
+import HomeView from '@/components/pages/HomeView.vue'
+import MonsterSlayer from '@/components/pages/MonsterSlayer/MonsterSlayer.vue'
+import SlamBook from '@/components/pages/Slambook/SlamBook.vue'
+import CommonNavbar from '@/components/common/CommonNavbarLink.vue'
+import { NAVBARLINK_PROPERTIES } from '@/common/recipe/rNavbarLink'
+import LoginView from './components/pages/LoginView.vue'
+
+export default {
+  name: 'app',
+  components: { HomeView, MonsterSlayer, SlamBook, CommonNavbar, LoginView },
+  data() {
+    return {
+      items: [...NAVBARLINK_PROPERTIES],
+      logo: 'Rapplication',
+      login: false,
+      userAccounts: [
+        {
+          signInUser: 'borjie',
+          email: 'borjie24@email.com',
+          password: 'password'
+        }
+      ]
+    }
+  },
+  methods: {
+    signInUser(credentials) {
+      const { username, password } = { ...credentials }
+      const user = [...this.userAccounts]
+      const currentUser = user.find((u) => u.signInUser === username && u.password === password)
+      if (currentUser) {
+        this.login = true
+      }
+    },
+    signUpUser() {
+      const currentUser = user.find((u) => u.email === this.newEmail)
+
+      if (currentUser) {
+        return alert('this email is already been used')
+      }
+
+      const newUserAccount = {
+        signInUser: this.newUsername,
+        password: this.newPassword,
+        email: this.newEmail
+      }
+      this.userAccounts.push(newUserAccount)
+      return alert('Account is successfully created')
+    }
+  }
+}
+</script>
+
+<style scoped>
+.navbar-toggler {
+  border: none;
+}
+
+.navbar-toggler {
+  box-shadow: none !important;
+}
+
+i {
+  font-size: 35px;
+}
+</style>
