@@ -124,3 +124,39 @@ export default {
 }
 </style>
 
+
+
+---------------------------
+Router
+
+
+
+// router/index.js
+import { createRouter, createWebHistory } from 'vue-router'
+import LoginForm from '@/components/LoginForm.vue'
+import RegistrationForm from '@/components/RegistrationForm.vue'
+import AppContent from '@/components/AppContent.vue' // Protected content in App.vue
+
+const routes = [
+  { path: '/login', component: LoginForm },
+  { path: '/register', component: RegistrationForm },
+  { path: '/app', component: AppContent, meta: { requiresAuth: true } },
+  { path: '/', redirect: '/login' } // Default route to login
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/login'); // Redirect to login if not authenticated
+  } else {
+    next(); // Proceed to route
+  }
+});
+
+export default router
+
