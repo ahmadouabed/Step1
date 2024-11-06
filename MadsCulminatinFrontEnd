@@ -48,4 +48,79 @@ export default {
 </style>
 
 
+
+
 https://www.codingnepalweb.com/responsive-login-form-using-only-html-css/#google_vignette
+
+
+
+-----------------------------------------------------------
+
+<template>
+  <div class="app">
+    <!-- Navbar only shows when the user is authenticated -->
+    <b-navbar v-if="isAuthenticated" toggleable="lg" type="dark" variant="info" sticky="top">
+      <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+      <b-navbar-brand style="font-size: 30px" href="#">{{ TitleNav }}</b-navbar-brand>
+      <b-collapse id="nav-collapse" is-nav>
+        <b-navbar-nav v-for="item in items" :key="item.id">
+          <common-nav-link :is="item.componentName" :key="item.id" :input="item"></common-nav-link>
+        </b-navbar-nav>
+        <!-- Logout button on the right side of the navbar -->
+        <b-navbar-nav class="ml-auto">
+          <b-button variant="danger" @click="logout">Logout</b-button>
+        </b-navbar-nav>
+      </b-collapse>
+    </b-navbar>
+
+    <!-- Main App Content (router-view) only displayed when authenticated -->
+    <router-view v-if="isAuthenticated"></router-view>
+
+    <!-- Login or Registration Forms displayed when not authenticated -->
+    <div v-else>
+      <login-form v-if="showLogin" @login-success="handleLoginSuccess" @switch-to-register="showLogin = false"></login-form>
+      <reg-form v-else @registration-success="showLogin = true" @switch-to-login="showLogin = true"></reg-form>
+    </div>
+  </div>
+</template>
+
+<script>
+import { NAVIGATIONPROPERTIES } from './common/recipe/rNavLink'
+import CommonNavLink from '@/components/common/CommonNavLink.vue'
+import LoginForm from './components/pages/Login/LoginForm.vue'
+import RegForm from './components/pages/Login/RegForm.vue'
+
+export default {
+  name: 'app',
+  components: { CommonNavLink, LoginForm, RegForm },
+  data() {
+    return {
+      items: [...NAVIGATIONPROPERTIES],
+      TitleNav: 'MadsStack',
+      isAuthenticated: localStorage.getItem('isAuthenticated') === 'true', // Check initial authentication status
+      showLogin: true // Track whether to show login or registration form
+    }
+  },
+  methods: {
+    handleLoginSuccess() {
+      this.isAuthenticated = true;
+      localStorage.setItem('isAuthenticated', 'true'); // Store authenticated status in localStorage
+    },
+    logout() {
+      this.isAuthenticated = false;
+      localStorage.removeItem('isAuthenticated'); // Clear authentication on logout
+      this.showLogin = true; // Show login form again
+    }
+  }
+}
+</script>
+
+<style scoped>
+.navbar {
+  width: 100%;
+}
+.app {
+  overflow: auto;
+}
+</style>
+
