@@ -1,0 +1,311 @@
+import { shallowMount } from '@vue/test-utils'
+import App from '@/App.vue'
+
+describe('testing App.vue', () => {
+  test('Pushing the router', () => {
+    const mockRouter = { push: jest.fn() }
+
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: true,
+          username: ''
+        }
+      }
+    })
+    wrapper.unmount()
+    expect(mockRouter.push).toBeCalled()
+  })
+
+  test('renders Sign in form when not logged in and showLoginForm is true', () => {
+    const mockRouter = { push: jest.fn() }
+
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: true,
+          username: ''
+        }
+      }
+    })
+    expect(wrapper.findComponent({ name: 'SignInView' }).exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'SignUpView' }).exists()).toBe(false)
+  })
+
+  test('renders Sign up form when not logged in and showLoginForm is false', () => {
+    const mockRouter = { push: jest.fn() }
+
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: false,
+          username: ''
+        }
+      }
+    })
+    expect(wrapper.findComponent({ name: 'SignInView' }).exists()).toBe(false)
+    expect(wrapper.findComponent({ name: 'SignUpView' }).exists()).toBe(true)
+  })
+})
+
+-----------------------------------
+<template>
+  <div>
+    <div v-if="!isLoggedIn" class="d-flex align-items-center justify-content-center app">
+      <b-container class="w-auto">
+        <b-card v-if="showLoginForm" header="Sign In">
+          <b-card-text>
+            <sign-in-view @login-success="updateLoginStatus(true, $event)"></sign-in-view>
+          </b-card-text>
+          <div class="mt-3">
+            <span>
+              Don't have an account?
+              <span class="clickable" @click="showLoginForm = false">Sign up here</span>
+            </span>
+          </div>
+        </b-card>
+        <b-card header="Sign Up" v-else>
+          <b-card-text>
+            <sign-up-view></sign-up-view>
+          </b-card-text>
+          <div class="mt-3">
+            <span v-if="!isLoggedIn">
+              Already have an account?
+              <span class="clickable" @click="showLoginForm = true">Sign in here</span>
+            </span>
+          </div>
+        </b-card>
+      </b-container>
+    </div>
+    <div v-else-if="isLoggedIn">
+      <b-navbar toggleable="lg" type="dark" variant="success" sticky="top" class="p-3">
+        <b-navbar-toggle target="navbar-toggle-collapse" variant="light">
+          <i class="bi bi-list text-light"></i>
+        </b-navbar-toggle>
+        <b-collapse id="navbar-toggle-collapse" class="flex-grow-0 flex-wrap pl-5" is-nav>
+          <b-navbar-brand
+            ><h1 class="fw-bold text-light">{{ logo }}</h1></b-navbar-brand
+          >
+          <b-navbar-nav v-for="item in items" :key="item.id" class="ml-auto">
+            <component :is="item.componentName" :key="item.id" :input="item"></component>
+          </b-navbar-nav>
+        </b-collapse>
+        <b-nav-item-dropdown class="text-light list fs-4" right>
+          <template #button-content>
+            <i class="bi bi-person-circle mx-2"></i>
+            <em>{{ username }}</em>
+          </template>
+          <b-dropdown-item :disabled="true">
+            <span>{{ userEmail }}</span>
+          </b-dropdown-item>
+          <b-dropdown-item @click="changePassword">Change Password</b-dropdown-item>
+          <b-dropdown-item @click="deleteAccount">Delete Account</b-dropdown-item>
+          <b-dropdown-item @click="signOut">Sign Out</b-dropdown-item>
+        </b-nav-item-dropdown>
+      </b-navbar>
+      <router-view></router-view>
+    </div>
+  </div>
+</template>
+
+<script>
+import CommonNavbar from '@/components/common/CommonNavbarLink.vue'
+import { NAVBARLINK_PROPERTIES } from '@/common/recipe/rNavbarLink'
+import SignInView from '@/components/pages/SignInView.vue'
+import SignUpView from '@/components/pages/SignUpView.vue'
+
+export default {
+  name: 'app',
+  components: { CommonNavbar, SignInView, SignUpView },
+  data() {
+    return {
+      items: [...NAVBARLINK_PROPERTIES],
+      logo: 'Rapplication',
+      isLoggedIn: false,
+      showLoginForm: true,
+      username: ''
+    }
+  },
+  created() {
+    this.initializedLocalStorageData()
+  },
+  methods: {
+    /**
+     * Function use for updating the pages information
+     * @param {Boolean} status - used for hiding the login page
+     * @param {String} username - the username of the user
+     */
+    updateLoginStatus(status, username) {
+      this.isLoggedIn = status
+      if (username) {
+        this.username = username
+        this.fetchUserEmail()
+      }
+    },
+    /**
+     * Function use for getting the email of the current user
+     */
+    fetchUserEmail() {
+      const user = JSON.parse(localStorage.getItem(this.username))
+      if (user) {
+        this.userEmail = user.email || ''
+      }
+    },
+    /**
+     * Function use for deleting the current user account
+     */
+    deleteAccount() {
+      if (confirm('Are you sure you want to delete your account?')) {
+        localStorage.removeItem(this.username)
+        localStorage.removeItem('isLoggedIn')
+        localStorage.removeItem('loggedInUser')
+        this.isLoggedIn = false
+        this.$router.push({ name: 'home-view' })
+      }
+    },
+    /**
+     * Function use for log out
+     */
+    signOut() {
+      this.isLoggedIn = false
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('loggedInUser')
+      this.$router.push({ name: 'home-view' })
+    },
+    /**
+     * Function use for changing the password of the current user
+     */
+    changePassword() {
+      const user = JSON.parse(localStorage.getItem(this.username))
+
+      if (user) {
+        const email = prompt('Enter your email address:')
+        if (email === user.email) {
+          const newPassword = prompt('Enter new password:')
+          const newPasswordValidation = newPassword.length >= 8 && newPassword.length <= 16
+          const whitespace = newPassword.trim() === ''
+          const regex = /\s/
+          if (newPasswordValidation && !whitespace && !regex.test(newPassword)) {
+            user.password = newPassword
+            localStorage.setItem(this.username, JSON.stringify(user))
+            alert('Password updated successfully!')
+          } else {
+            alert(
+              'Password update failed. password should be 8 to 16 characters only and not contain white space only, Please try again.'
+            )
+          }
+        } else {
+          alert('Email does not match the registered email.')
+        }
+      } else {
+        alert('User not found!')
+      }
+    },
+    /**
+     * Function use to checks localStorage for login status and username on component creation
+     * and updates component state if a valid login is found
+     * @return {void} This method does not return any value; it only updates the component state.
+     */
+    initializedLocalStorageData() {
+      const loggedInStatus = JSON.parse(localStorage.getItem('isLoggedIn'))
+      const storedUsername = localStorage.getItem('loggedInUser')
+      if (loggedInStatus && storedUsername) {
+        this.isLoggedIn = true
+        this.username = storedUsername
+        this.fetchUserEmail()
+      }
+      if (!this.isLoggedIn) {
+        this.$router.push({ name: 'home-view' })
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+.app {
+  height: 100vh;
+}
+.navbar-toggler {
+  border: none;
+}
+
+.navbar-toggler {
+  box-shadow: none !important;
+}
+
+i {
+  font-size: 35px;
+}
+
+.list {
+  list-style: none;
+}
+
+.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  color: #007bff;
+  display: inline-block;
+}
+.clickable:hover {
+  color: #0056b3;
+}
+</style>
