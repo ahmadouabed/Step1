@@ -463,3 +463,182 @@ describe('BmiComp.vue', () => {
     expect(wrapper.vm.resetbmiId).toBe(1)
   })
 })
+
+-------------------------
+newwww
+
+
+import { shallowMount } from '@vue/test-utils';
+import BmiComp from '@/BmiComp.vue';
+
+describe('BmiComp.vue', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    wrapper = shallowMount(BmiComp, {
+      stubs: ['b-container', 'b-row', 'b-col', 'common-button', 'b-alert', 'b-list-group', 'b-list-group-item', 'component'],
+    });
+  });
+
+  test('initializes with default data', () => {
+    expect(wrapper.vm.bmiData.firstPerson.name).toBe('');
+    expect(wrapper.vm.bmiData.secondPerson.name).toBe('');
+    expect(wrapper.vm.cardDetails).toBe(false);
+    expect(wrapper.vm.showAlert).toBe(false);
+  });
+
+  test('addFormData assigns data based on personId', () => {
+    wrapper.vm.addFormData({ key: 'name', value: 'John' }, 1);
+    expect(wrapper.vm.bmiData.firstPerson.name).toBe('John');
+
+    wrapper.vm.addFormData({ key: 'weight', value: '70' }, 2);
+    expect(wrapper.vm.bmiData.secondPerson.weight).toBe('70');
+  });
+
+  test('bmiCalc computes BMI correctly', () => {
+    wrapper.setData({
+      bmiData: {
+        firstPerson: { weight: '70', height: '170' },
+        secondPerson: { weight: '80', height: '180' },
+      },
+    });
+
+    wrapper.vm.bmiCalc();
+
+    expect(wrapper.vm.bmiOne).toBeCloseTo(24.22, 2);
+    expect(wrapper.vm.bmiTwo).toBeCloseTo(24.69, 2);
+  });
+
+  test('classifyBMI returns correct classification', () => {
+    expect(wrapper.vm.classifyBMI(17)).toBe('Underweight');
+    expect(wrapper.vm.classifyBMI(23)).toBe('Healthy Weight');
+    expect(wrapper.vm.classifyBMI(27)).toBe('Overweight');
+    expect(wrapper.vm.classifyBMI(32)).toBe('Obesity');
+  });
+
+  test('compareBMI sets correct comparison and classifications', () => {
+    wrapper.setData({
+      bmiOne: 25.0,
+      bmiTwo: 22.0,
+      bmiData: {
+        firstPerson: { name: 'John' },
+        secondPerson: { name: 'Jane' },
+      },
+    });
+
+    wrapper.vm.compareBMI();
+
+    expect(wrapper.vm.bmiCompare).toBe('John has greater BMI: 25.00');
+    expect(wrapper.vm.class1).toBe('Overweight');
+    expect(wrapper.vm.class2).toBe('Healthy Weight');
+  });
+
+  test('outputData populates bmiOutput correctly', () => {
+    wrapper.setData({
+      bmiOne: 25.0,
+      bmiTwo: 22.0,
+      class1: 'Overweight',
+      class2: 'Healthy Weight',
+      bmiData: {
+        firstPerson: { name: 'John' },
+        secondPerson: { name: 'Jane' },
+      },
+    });
+
+    wrapper.vm.outputData();
+
+    expect(wrapper.vm.bmiOutput.user1).toEqual({
+      name: 'John',
+      bmi: '25.00',
+      classification: 'Overweight',
+    });
+    expect(wrapper.vm.bmiOutput.user2).toEqual({
+      name: 'Jane',
+      bmi: '22.00',
+      classification: 'Healthy Weight',
+    });
+  });
+
+  test('displayData handles compute action correctly', () => {
+    jest.spyOn(window, 'alert').mockImplementation(() => {});
+    wrapper.setData({
+      bmiData: {
+        firstPerson: { name: 'John', weight: '70', height: '170' },
+        secondPerson: { name: 'Jane', weight: '80', height: '180' },
+      },
+    });
+
+    wrapper.vm.displayData('compute');
+
+    expect(wrapper.vm.bmiOne).toBeCloseTo(24.22, 2);
+    expect(wrapper.vm.bmiTwo).toBeCloseTo(24.69, 2);
+    expect(window.alert).toHaveBeenCalledWith('BMI Computed');
+  });
+
+  test('displayData alerts for invalid input', () => {
+    jest.spyOn(window, 'alert').mockImplementation(() => {});
+    wrapper.setData({
+      bmiData: {
+        firstPerson: { name: '', weight: '0', height: '-1' },
+        secondPerson: { name: '', weight: '', height: '' },
+      },
+    });
+
+    wrapper.vm.displayData('compute');
+
+    expect(window.alert).toHaveBeenCalledWith('No Input, please fill out the fields and use positive integers only');
+  });
+
+  test('dismissCards hides card and alert', () => {
+    wrapper.setData({ cardDetails: true, showAlert: true });
+
+    wrapper.vm.dismissCards();
+
+    expect(wrapper.vm.cardDetails).toBe(false);
+    expect(wrapper.vm.showAlert).toBe(false);
+  });
+
+  test('resetBmi resets all BMI-related data', () => {
+    wrapper.setData({
+      bmiData: {
+        firstPerson: { name: 'John', weight: '70', height: '170' },
+        secondPerson: { name: 'Jane', weight: '80', height: '180' },
+      },
+      cardDetails: true,
+      showAlert: true,
+      resetbmiId: 1,
+    });
+
+    wrapper.vm.resetBmi();
+
+    expect(wrapper.vm.bmiData.firstPerson.name).toBe('');
+    expect(wrapper.vm.bmiData.secondPerson.name).toBe('');
+    expect(wrapper.vm.cardDetails).toBe(false);
+    expect(wrapper.vm.showAlert).toBe(false);
+    expect(wrapper.vm.resetbmiId).toBe(2);
+  });
+});
+
+
+
+-----------------
+
+
+only need
+
+test('displayData alerts "Press Compute First" when compare is called before compute', () => {
+  jest.spyOn(window, 'alert').mockImplementation(() => {}); // Mock alert
+  wrapper.setData({
+    bmiData: {
+      firstPerson: { name: 'John', weight: '70', height: '170' },
+      secondPerson: { name: 'Jane', weight: '80', height: '180' },
+    },
+    bmiOne: 0,
+    bmiTwo: 0,
+  });
+
+  wrapper.vm.displayData('compare');
+
+  expect(window.alert).toHaveBeenCalledWith('Press Compute First');
+});
+
