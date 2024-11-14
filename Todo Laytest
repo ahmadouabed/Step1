@@ -655,3 +655,51 @@ describe('Todo.vue', () => {
   });
 });
 
+
+
+------------------
+
+neww showmodal
+
+
+
+Fixed Test
+javascript
+Copy code
+it('shows modal', () => {
+  const showMock = jest.fn();
+  
+  // Mock the $refs object with a fake 'my-modal'
+  wrapper.vm.$refs['my-modal'] = { show: showMock };
+
+  // Call the showModal method
+  wrapper.vm.showModal();
+
+  // Assert that the show method was called
+  expect(showMock).toHaveBeenCalled();
+});
+Key Adjustments:
+Proper Mocking:
+
+The $refs property is explicitly mocked for my-modal, including the show method.
+Ensure Accessibility:
+
+$refs is not reactive, so directly assigning a mock reference ensures the showModal method works as intended.
+Stub the Modal:
+
+If the component uses a modal (b-modal), ensure it’s stubbed in the shallowMount options:
+javascript
+Copy code
+shallowMount(Todo, {
+  stubs: ['b-modal'],
+});
+Additional Check:
+Confirm that the ref="my-modal" is set in the component’s template:
+html
+Copy code
+<b-modal ref="my-modal"></b-modal>
+Why It Should Work:
+The $refs['my-modal'] is manually defined with a show function, avoiding issues with Vue not initializing $refs in the test environment.
+Jest’s fn() method ensures the show function is mockable and trackable.
+Expected Outcome:
+When this test is rerun, it should pass successfully, verifying that the showModal method correctly calls the show method on the modal reference.
