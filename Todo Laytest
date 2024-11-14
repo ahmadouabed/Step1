@@ -486,3 +486,172 @@ describe('Todo.vue', () => {
     expect(wrapper.vm.filterTodo.length).toBe(1)
   })
 })
+
+
+--------------------
+
+
+
+
+import { shallowMount } from '@vue/test-utils';
+import Todo from '@/Todo.vue';
+
+describe('Todo.vue', () => {
+  let wrapper;
+
+  beforeEach(() => {
+    wrapper = shallowMount(Todo, {
+      stubs: ['b-container', 'b-input-group', 'b-form-input', 'b-button', 
+              'b-modal', 'b-row', 'b-col', 'component', 'b-button-group'],
+    });
+  });
+
+  test('initializes with default data', () => {
+    expect(wrapper.vm.userInput).toBe('');
+    expect(wrapper.vm.todo).toEqual([]);
+    expect(wrapper.vm.modalTexts).toBeDefined();
+  });
+
+  test('addItem adds a new todo item', () => {
+    wrapper.setData({ userInput: 'New Task' });
+    wrapper.vm.addItem();
+
+    expect(wrapper.vm.todo.length).toBe(1);
+    expect(wrapper.vm.todo[0].value).toBe('New Task');
+    expect(wrapper.vm.userInput).toBe('');
+  });
+
+  test('addItem does not add an empty todo', () => {
+    wrapper.setData({ userInput: '  ' });
+    wrapper.vm.addItem();
+
+    expect(wrapper.vm.todo.length).toBe(0);
+  });
+
+  test('confirmDelete calls deleteTodo after confirmation', () => {
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    wrapper.setData({ todo: [{ value: 'Task 1', completed: false }] });
+
+    wrapper.vm.confirmDelete(0);
+
+    expect(wrapper.vm.todo.length).toBe(0);
+  });
+
+  test('confirmDelete does nothing if user cancels', () => {
+    jest.spyOn(window, 'confirm').mockReturnValue(false);
+    wrapper.setData({ todo: [{ value: 'Task 1', completed: false }] });
+
+    wrapper.vm.confirmDelete(0);
+
+    expect(wrapper.vm.todo.length).toBe(1);
+  });
+
+  test('editTodo updates a todo item', () => {
+    jest.spyOn(window, 'prompt').mockReturnValue('Edited Task');
+    wrapper.setData({ todo: [{ value: 'Task 1', completed: false }] });
+
+    wrapper.vm.editTodo(0);
+
+    expect(wrapper.vm.todo[0].value).toBe('Edited Task');
+  });
+
+  test('editTodo does nothing if input is empty or canceled', () => {
+    jest.spyOn(window, 'prompt').mockReturnValue('');
+    wrapper.setData({ todo: [{ value: 'Task 1', completed: false }] });
+
+    wrapper.vm.editTodo(0);
+
+    expect(wrapper.vm.todo[0].value).toBe('Task 1');
+  });
+
+  test('toggleCompleted toggles completion status', () => {
+    wrapper.setData({ todo: [{ value: 'Task 1', completed: false }] });
+
+    wrapper.vm.toggleCompleted(0);
+
+    expect(wrapper.vm.todo[0].completed).toBe(true);
+    expect(wrapper.vm.todo[0].tag).toBe('Completed');
+
+    wrapper.vm.toggleCompleted(0);
+
+    expect(wrapper.vm.todo[0].completed).toBe(false);
+    expect(wrapper.vm.todo[0].tag).toBeUndefined();
+  });
+
+  test('deleteAll removes all todos', () => {
+    wrapper.setData({ todo: [{ value: 'Task 1' }, { value: 'Task 2' }] });
+
+    wrapper.vm.deleteAll();
+
+    expect(wrapper.vm.todo.length).toBe(0);
+  });
+
+  test('clearCompleted removes only completed todos', () => {
+    wrapper.setData({ todo: [{ value: 'Task 1', completed: true }, { value: 'Task 2', completed: false }] });
+
+    wrapper.vm.clearCompleted();
+
+    expect(wrapper.vm.todo.length).toBe(1);
+    expect(wrapper.vm.todo[0].value).toBe('Task 2');
+  });
+
+  test('initializeData returns true if userInput is empty', () => {
+    wrapper.setData({ userInput: '' });
+    expect(wrapper.vm.initializeData()).toBe(true);
+  });
+
+  test('clickAddTask shows alert for empty input', () => {
+    jest.spyOn(window, 'alert').mockImplementation(() => {});
+    wrapper.setData({ userInput: ' ' });
+
+    wrapper.vm.clickAddTask();
+
+    expect(window.alert).toHaveBeenCalledWith('Please Input a Note');
+  });
+
+  test('clickAddTask calls addItem for valid input', () => {
+    jest.spyOn(wrapper.vm, 'addItem').mockImplementation(() => {});
+    wrapper.setData({ userInput: 'Task' });
+
+    wrapper.vm.clickAddTask();
+
+    expect(wrapper.vm.addItem).toHaveBeenCalled();
+  });
+
+  test('showModal shows the modal', () => {
+    const showMock = jest.fn();
+    wrapper.vm.$refs['my-modal'] = { show: showMock };
+
+    wrapper.vm.showModal();
+
+    expect(showMock).toHaveBeenCalled();
+  });
+
+  test('newFunc handles clearAll action correctly', () => {
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    wrapper.setData({ todo: [{ value: 'Task 1' }] });
+
+    wrapper.vm.newFunc('clearAll');
+
+    expect(wrapper.vm.todo.length).toBe(0);
+  });
+
+  test('getStyle returns correct style for completed items', () => {
+    const style = wrapper.vm.getStyle({ completed: true });
+
+    expect(style).toEqual({
+      color: '#888',
+      backgroundColor: '#f0f0f0',
+    });
+  });
+
+  test('getStyle returns correct style for incomplete items', () => {
+    const style = wrapper.vm.getStyle({ completed: false });
+
+    expect(style).toEqual({
+      color: '#000',
+      backgroundColor: '#fff',
+    });
+  });
+});
+
