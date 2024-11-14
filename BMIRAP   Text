@@ -1,0 +1,222 @@
+import { shallowMount } from '@vue/test-utils'
+import ToDoList from '@/components/pages/ToDoList/ToDoList.vue'
+
+describe('testing ToDoList.vue', () => {
+  test('addTextTask updates taskText with the value', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+
+    wrapper.vm.addTextTask('Sample task')
+    expect(wrapper.vm.taskText).toBe('Sample task')
+  })
+
+  test('adds a task when input is provided and "Add Task" button is clicked', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+    wrapper.setData({ userInput: 'New Task' })
+
+    wrapper.vm.addTodoTask()
+
+    expect(wrapper.vm.tasks).toHaveLength(1)
+    expect(wrapper.vm.tasks[0].text).toBe('New Task')
+  })
+
+  test('if empty task is added, it should alert message will pop up', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+    wrapper.setData({ userInput: '' })
+
+    wrapper.vm.addTodoTask()
+
+    expect(wrapper.vm.tasks).toHaveLength(0)
+    expect(wrapper.vm.showError).toBe(true)
+    expect(wrapper.vm.alertMessage).toBe('Task cannot be empty or consist only of spaces!')
+  })
+
+  test('deleting specific task', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+
+    wrapper.setData({
+      tasks: [
+        { text: 'Task1', completed: false },
+        { text: 'Task2', completed: true },
+        { text: 'Task3 ', completed: false }
+      ]
+    })
+
+    global.confirm = jest.fn(() => true)
+    wrapper.vm.deleteTask(0)
+
+    expect(wrapper.vm.tasks).toHaveLength(2)
+  })
+
+  test('deleting completed task', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+
+    wrapper.setData({
+      tasks: [
+        { text: 'Task1', completed: false },
+        { text: 'Task2', completed: true },
+        { text: 'Task3 ', completed: false }
+      ]
+    })
+
+    wrapper.vm.clearCompletedTask()
+
+    expect(wrapper.vm.tasks).toHaveLength(2)
+  })
+
+  test('deleting all task', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+
+    wrapper.setData({
+      tasks: [
+        { text: 'Task1', completed: false },
+        { text: 'Task2', completed: true },
+        { text: 'Task3 ', completed: false }
+      ]
+    })
+    global.confirm = jest.fn(() => true)
+    wrapper.vm.clearAllTasks()
+
+    expect(wrapper.vm.tasks).toHaveLength(0)
+  })
+
+  test('open FAQ modal when FAQ button is clicked', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+
+    const showModal = jest.fn()
+    wrapper.vm.$refs['modal-1'] = { show: showModal }
+    wrapper.vm.getButtonFunctionality('faqs')
+
+    expect(showModal).toHaveBeenCalled()
+  })
+
+  test('completed tasks changed styles', () => {
+    const wrapper = shallowMount(ToDoList, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BAlert: 'b-alert',
+          BInputGroup: 'b-input-group',
+          BRow: 'b-row',
+          BCol: 'b-col',
+          BListGroup: 'b-list-group',
+          BListGroupItem: 'b-list-group-item',
+          BFormCheckbox: 'b-form-checkbox',
+          BCard: 'b-card',
+          BModal: 'b-modal'
+        }
+      }
+    })
+    const completedTask = { text: 'Completed Task', completed: true }
+    const style = wrapper.vm.getStyleCompleted(completedTask)
+
+    expect(style).toEqual({
+      backgroundColor: '#d8f3dc',
+      color: '#2d6a4f'
+    })
+  })
+})
