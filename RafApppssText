@@ -1,0 +1,191 @@
+import { shallowMount } from '@vue/test-utils'
+import App from '@/App.vue'
+
+describe('testing App.vue', () => {
+  test('Pushing the router', () => {
+    const mockRouter = { push: jest.fn() }
+
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: true,
+          username: ''
+        }
+      }
+    })
+    wrapper.unmount()
+    expect(mockRouter.push).toBeCalled()
+  })
+
+  test('renders Sign in form when not logged in and showLoginForm is true', () => {
+    const mockRouter = { push: jest.fn() }
+
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: true,
+          username: ''
+        }
+      }
+    })
+    expect(wrapper.findComponent({ name: 'SignInView' }).exists()).toBe(true)
+    expect(wrapper.findComponent({ name: 'SignUpView' }).exists()).toBe(false)
+  })
+
+  test('renders Sign up form when not logged in and showLoginForm is false', () => {
+    const mockRouter = { push: jest.fn() }
+
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: false,
+          username: ''
+        }
+      }
+    })
+    expect(wrapper.findComponent({ name: 'SignInView' }).exists()).toBe(false)
+    expect(wrapper.findComponent({ name: 'SignUpView' }).exists()).toBe(true)
+  })
+
+  test('fetchUserEmail correctly sets user email if user exists in localStorage', () => {
+    const mockRouter = { push: jest.fn() }
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: true,
+          username: 'SampleUser',
+          userEmail: ''
+        }
+      }
+    })
+    const mockUser = { email: 'sample@example.com' }
+    localStorage.setItem('SampleUser', JSON.stringify(mockUser))
+    wrapper.vm.fetchUserEmail()
+    expect(wrapper.vm.userEmail).toBe(mockUser.email)
+    localStorage.clear()
+  })
+
+  test('fetchUserEmail will not set user email if user is not correct', () => {
+    const mockRouter = { push: jest.fn() }
+    const wrapper = shallowMount(App, {
+      global: {
+        components: {
+          BContainer: 'b-container',
+          BCard: 'b-card',
+          BCardText: 'b-card-text',
+          BNavbar: 'b-navbar',
+          BNavbarNav: 'b-navbar-nav',
+          BNavbarBrand: 'b-navbar-brand',
+          BNavbarToggle: 'b-navbar-toggle',
+          BCollapse: 'b-collapse',
+          BNavItemDropdown: 'b-nav-item-dropdown',
+          BDropdownItem: 'b-dropdown-item',
+          RouterView: 'router-view'
+        },
+        mocks: {
+          $router: mockRouter
+        }
+      },
+      data() {
+        return {
+          isLoggedIn: false,
+          showLoginForm: true,
+          username: 'SampleUser',
+          userEmail: ''
+        }
+      }
+    })
+    const mockUser = { email: '' }
+    localStorage.setItem('SampleUser1', JSON.stringify(mockUser))
+    wrapper.vm.fetchUserEmail()
+    expect(wrapper.vm.userEmail).toBe('')
+  })
+})
+
+
+---------------------------------
+
+
+
+Challenge: Create your own Puppy Company blog in Section 13.     
+Should consist of a Home, Registration for puppies, display of list of puppies, delete puppy option and update an owner for puppies.      
+  Submit ERD. You may refer to the sample ERD below. Please update according to your created tables.      
+Submit component Diagram, Class Diagram and Dataset Diagram      User must be able to add puppy information (name, breed and age). It should be save in the DB.    
+User is able to see the puppy information and if the puppy already has an owner or not. Suggested display is in table format. Info should be taken from the DB.    
+When delete puppy option is done, it should also reflect in the DB.      User must be able to adopt a puppy (apply update data in db)
