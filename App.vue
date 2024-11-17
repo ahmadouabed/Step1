@@ -93,3 +93,103 @@ body {
 }
 </style>
 
+
+
+Here’s a structured breakdown to tackle your “Puppy Company Blog” challenge:
+
+1. Database Design (ERD)
+
+Your database design should consist of the following tables:
+
+Tables:
+
+	1.	Puppies
+	•	puppy_id (Primary Key)
+	•	name (String)
+	•	breed (String)
+	•	age (Integer)
+	•	owner_id (Foreign Key, Nullable - links to Owners table)
+	2.	Owners
+	•	owner_id (Primary Key)
+	•	name (String)
+	•	contact_info (String)
+
+ERD:
+
+	•	Puppies has a foreign key relationship to Owners.
+	•	When a puppy is adopted, the owner_id in the Puppies table will be updated.
+
+2. Component Diagram
+
+The application could have the following Vue components:
+	1.	HomeComponent: Displays the homepage content.
+	2.	PuppyRegistrationComponent: Handles adding new puppy data.
+	3.	PuppyListComponent: Displays the list of puppies in a table format.
+	•	Includes delete and update (adoption) functionality.
+	4.	OwnerUpdateComponent: Allows updating owner information for a puppy.
+
+3. Class Diagram
+
+The class diagram will include the following entities:
+
+Classes:
+
+	1.	Puppy
+	•	Attributes:
+	•	id: Number
+	•	name: String
+	•	breed: String
+	•	age: Number
+	•	owner: Owner | null
+	•	Methods:
+	•	addPuppy()
+	•	deletePuppy()
+	•	updateOwner()
+	2.	Owner
+	•	Attributes:
+	•	id: Number
+	•	name: String
+	•	contactInfo: String
+	•	Methods:
+	•	addOwner()
+
+4. Dataset Diagram
+
+Example dataset (mock data):
+
+	•	Puppies
+
+puppy_id	name	breed	age	owner_id
+1	Max	Labrador	2	NULL
+2	Bella	Poodle	1	1
+3	Rocky	German Shep	3	NULL
+
+
+	•	Owners
+
+owner_id	name	contact_info
+1	John Smith	john@example.com
+
+5. Features Implementation
+
+Frontend (Vue.js):
+
+	•	Use Vue Router for navigation between components.
+	•	Use Vuex or Pinia for state management to sync UI with the DB.
+
+Backend:
+
+	•	API Endpoints (Using Node.js/Express or similar):
+	•	POST /puppies: Adds a new puppy.
+	•	GET /puppies: Fetches all puppies.
+	•	DELETE /puppies/:id: Deletes a puppy.
+	•	PUT /puppies/:id/owner: Updates the owner for a puppy.
+
+Database:
+
+	•	Use MySQL/PostgreSQL to store puppy and owner data.
+	•	Use Sequelize/Prisma for ORM if applicable.
+
+Would you like a specific diagram generated or code snippets to help you implement any part?
+
+
