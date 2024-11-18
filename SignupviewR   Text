@@ -1,0 +1,362 @@
+<template>
+  <b-form @submit.prevent="registerUser">
+    <b-form-group label="Username:" label-for="username" class="mb-3">
+      <b-form-input
+        id="username"
+        v-model="username"
+        type="text"
+        required
+        placeholder="Enter a username"
+        maxlength="10"
+      ></b-form-input>
+      <b-form-text v-if="messageUsername">
+        {{ messageUsername }}
+      </b-form-text>
+    </b-form-group>
+
+    <b-form-group label="Email:" label-for="email" class="mb-3">
+      <b-form-input
+        id="email"
+        v-model="email"
+        type="email"
+        required
+        placeholder="Enter your email"
+        maxlength="20"
+      ></b-form-input>
+      <b-form-text v-if="messageEmail">
+        {{ messageEmail }}
+      </b-form-text>
+    </b-form-group>
+
+    <b-form-group label="Password:" label-for="password" class="mb-3">
+      <b-form-input
+        id="password"
+        v-model="password"
+        type="password"
+        required
+        placeholder="Enter a password"
+        minlength="8"
+        maxlength="16"
+      ></b-form-input>
+    </b-form-group>
+
+    <b-form-group label="Confirm Password:" label-for="confirmPassword" class="mb-3">
+      <b-form-input
+        id="confirmPassword"
+        v-model="confirmPassword"
+        type="password"
+        required
+        placeholder="Confirm your password"
+        minlength="8"
+        maxlength="16"
+      ></b-form-input>
+      <b-form-text v-if="messagePassword">
+        {{ messagePassword }}
+      </b-form-text>
+    </b-form-group>
+
+    <b-button variant="success" type="submit" class="mb-3 w-100">Register</b-button>
+
+    <b-form-text v-if="message">
+      {{ message }}
+    </b-form-text>
+  </b-form>
+</template>
+
+<script>
+export default {
+  name: 'SignUpView',
+  data() {
+    return {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      message: '',
+      messageEmail: '',
+      messageUsername: '',
+      messagePassword: ''
+    }
+  },
+  methods: {
+    /**
+     * Function use for creating new account
+     * @return {void} return the event whent condition is met
+     */
+    registerUser() {
+      this.resetMessage()
+
+      const regex = /\s/
+      if (localStorage.getItem(this.username)) {
+        this.messageUsername = 'Username already exists!'
+        return
+      }
+
+      if (regex.test(this.username)) {
+        this.messageUsername = 'Username must not contain whitespace'
+        return
+      }
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const userKey = localStorage.key(i)
+        const user = JSON.parse(localStorage.getItem(userKey))
+        if (user.email === this.email) {
+          this.messageEmail = 'Email already exists!'
+          return
+        }
+      }
+
+      if (this.password !== this.confirmPassword) {
+        this.messagePassword = 'Passwords do not match!'
+        return
+      }
+
+      if (regex.test(this.password)) {
+        this.messagePassword = 'Passwords must not contain whitespace'
+        return
+      }
+      this.registerSuccessfully()
+      this.resetInput()
+    },
+
+    /**
+     * Function use for resetting the message
+     */
+    resetMessage() {
+      this.messageUsername = ''
+      this.messageEmail = ''
+      this.messagePassword = ''
+      this.message = ''
+    },
+    /**
+     * Function use for resetting the input field
+     */
+    resetInput() {
+      this.username = ''
+      this.email = ''
+      this.password = ''
+      this.confirmPassword = ''
+    },
+    /**
+     * Function use for registering user successfully
+     */
+    registerUserSuccessfully() {
+      const user = {
+        username: this.username,
+        email: this.email,
+        password: this.password
+      }
+      localStorage.setItem(this.username, JSON.stringify(user))
+      alert('User registered successfully!')
+    }
+  }
+}
+</script>
+-------------------------
+
+import { shallowMount } from '@vue/test-utils'
+import SignUpView from '@/components/pages/SignUpView.vue'
+
+describe('testing SignUpView.vue', () => {
+  test('registerUser sets error messageUsername for existing username', () => {
+    const signUpData = {
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789'
+    }
+
+    const wrapper = shallowMount(SignUpView, {
+      global: {
+        components: {
+          BForm: 'b-form',
+          BFormGroup: 'b-form-group',
+          BFormInput: 'b-form-input',
+          BFormText: 'b-form-text',
+          BButton: 'b-button'
+        }
+      }
+    })
+
+    localStorage.setItem('sample', JSON.stringify(signUpData))
+
+    wrapper.setData({
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789',
+      confirmPassword: '123456789'
+    })
+
+    wrapper.vm.registerUser()
+
+    expect(wrapper.vm.messageUsername).toBe('Username already exists!')
+  })
+
+  test('registerUser sets error messageEmail for existing Email', () => {
+    const signUpData = {
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789'
+    }
+
+    const wrapper = shallowMount(SignUpView, {
+      global: {
+        components: {
+          BForm: 'b-form',
+          BFormGroup: 'b-form-group',
+          BFormInput: 'b-form-input',
+          BFormText: 'b-form-text',
+          BButton: 'b-button'
+        }
+      }
+    })
+
+    localStorage.setItem('sample', JSON.stringify(signUpData))
+
+    wrapper.setData({
+      username: 'borjie',
+      email: 'sample@email.com',
+      password: '123456789',
+      confirmPassword: '123456789'
+    })
+
+    wrapper.vm.registerUser()
+
+    expect(wrapper.vm.messageEmail).toBe('Email already exists!')
+  })
+
+  test('registerUser sets error messagePassword for password mismatch', () => {
+    const signUpData = {
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789'
+    }
+
+    const wrapper = shallowMount(SignUpView, {
+      global: {
+        components: {
+          BForm: 'b-form',
+          BFormGroup: 'b-form-group',
+          BFormInput: 'b-form-input',
+          BFormText: 'b-form-text',
+          BButton: 'b-button'
+        }
+      }
+    })
+
+    localStorage.setItem('sample', JSON.stringify(signUpData))
+
+    wrapper.setData({
+      username: 'borjie',
+      email: 'sample24@email.com',
+      password: '123456789a',
+      confirmPassword: '123456789'
+    })
+
+    wrapper.vm.registerUser()
+
+    expect(wrapper.vm.messagePassword).toBe('Passwords do not match!')
+  })
+
+  test('registerUser sets error messagePassword for whitespace content', () => {
+    const signUpData = {
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789'
+    }
+
+    const wrapper = shallowMount(SignUpView, {
+      global: {
+        components: {
+          BForm: 'b-form',
+          BFormGroup: 'b-form-group',
+          BFormInput: 'b-form-input',
+          BFormText: 'b-form-text',
+          BButton: 'b-button'
+        }
+      }
+    })
+
+    window.alert = jest.fn()
+    localStorage.setItem('sample', JSON.stringify(signUpData))
+
+    wrapper.setData({
+      username: 'borjie',
+      email: 'sample24@email.com',
+      password: '        ',
+      confirmPassword: '        '
+    })
+
+    wrapper.vm.registerUser()
+
+    expect(wrapper.vm.messagePassword).toBe('Passwords must not contain whitespace')
+  })
+
+  test('registerUser sets error messageUsername for whitespace content', () => {
+    const signUpData = {
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789'
+    }
+
+    const wrapper = shallowMount(SignUpView, {
+      global: {
+        components: {
+          BForm: 'b-form',
+          BFormGroup: 'b-form-group',
+          BFormInput: 'b-form-input',
+          BFormText: 'b-form-text',
+          BButton: 'b-button'
+        }
+      }
+    })
+
+    window.alert = jest.fn()
+    localStorage.setItem('sample', JSON.stringify(signUpData))
+
+    wrapper.setData({
+      username: '    ',
+      email: 'sample24@email.com',
+      password: 'password123',
+      confirmPassword: 'password123'
+    })
+
+    wrapper.vm.registerUser()
+
+    expect(wrapper.vm.messageUsername).toBe('Username must not contain whitespace')
+  })
+
+  test('registerUser was successfully added', () => {
+    const signUpData = {
+      username: 'sample',
+      email: 'sample@email.com',
+      password: '123456789'
+    }
+
+    const wrapper = shallowMount(SignUpView, {
+      global: {
+        components: {
+          BForm: 'b-form',
+          BFormGroup: 'b-form-group',
+          BFormInput: 'b-form-input',
+          BFormText: 'b-form-text',
+          BButton: 'b-button'
+        }
+      }
+    })
+
+    window.alert = jest.fn()
+    localStorage.setItem('sample', JSON.stringify(signUpData))
+
+    wrapper.setData({
+      username: 'sample123',
+      email: 'sample24@email.com',
+      password: 'password123',
+      confirmPassword: 'password123'
+    })
+
+    wrapper.vm.registerUser()
+    expect(wrapper.vm.messageEmail).toBe('')
+    expect(wrapper.vm.messagePassword).toBe('')
+    expect(wrapper.vm.messageUsername).toBe('')
+  })
+})
