@@ -1,0 +1,77 @@
+from src.setup_db_example.database import db
+
+
+class UserDb(db.Model):
+    """Represents a model for storing the data in user_db_table
+
+    Args:
+        db (sqlalchemy): SQLAlchemy engine
+    
+    Returns:
+        list: user_db_table
+    """
+
+
+    __tablename__ = "user_db_table"
+	
+    user_id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(32), nullable=False)
+    user_email = db.Column(db.String(32), nullable=False)
+    user_address = db.Column(db.String(32), nullable=False)
+
+class PuppyDb(db.Model):
+    """Represents a model for storing the data in puppy_db_table
+
+    Args:
+        db (sqlalchemy): SQLAlchemy engine
+    
+    Returns:
+        list: puppy_db_table
+    """
+    
+
+    __tablename__ = "puppy_db_table"
+
+    puppy_id = db.Column(db.Integer, primary_key=True)
+    puppy_name = db.Column(db.String(32), nullable=False)
+    puppy_age = db.Column(db.Integer(3), nullable=False)
+    puppy_breed = db.Column(db.String(32), nullable=False)
+    puppy_gender= db.Column(db.String(32), nullable=False)
+    adoption_status = db.Column(db.Boolean, nullable=False)
+    owned_by = db.Column(db.String(32), db.ForeignKey("user_db_table"), nullable=False)
+
+
+
+----------------------
+from flask_marshmallow.fields import fields
+from src.setup_db_example.models.puppy_company_blog.model import UserDb
+from src.setup_db_example.models.puppy_company_blog.model import PuppyDb
+from src.setup_db_example.schemas import ma
+
+
+class UserSchema(ma.SQLAlchemySchmena):
+ 
+ class Meta:
+  
+  model = UserDb
+
+ user_id = fields.Integer()
+ user_name = fields.String()
+ user_email = fields.String()
+ user_address = fields.String()
+
+
+class PuppySchema(ma.SQLAlchemySchmena):
+ 
+ class Meta:
+  
+  model = PuppyDb
+
+  puppy_id = fields.Integer()
+  puppy_name = fields.String()
+  puppy_age = fields.Integer()
+  puppy_breed = fields.String()
+  puppy_gender= fields.String()
+ adoption_status = fields.String()
+ owned_by =fields.Boolean()
+-------------------------
