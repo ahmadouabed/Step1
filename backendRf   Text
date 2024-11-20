@@ -1,0 +1,108 @@
+from src.setup_db_example.database import db
+
+
+class UserDb(db.Model):
+    """Represents a model for storing the data in user_tbl
+
+    Args:
+        db (sqlalchemy): SQLAlchemy engine
+    
+    Returns:
+        list: user_tbl
+    """
+
+
+    __tablename__ = "user_tbl"
+	
+    user_id = db.Column(db.Integer, primary_key=True)
+    user_name = db.Column(db.String(32), nullable=False)
+    user_email = db.Column(db.String(32), nullable=False, unique=True)
+    user_password = db.Column(db.String(32), nullable=False)
+    user_address = db.Column(db.String(64), nullable=False)
+
+    puppies = db.relationship('PuppyDb', backref='user', lazy=True, cascade="all, delete")
+--------------------------------------
+from src.setup_db_example.database import db
+
+class PuppyDb(db.Model):
+    """Represents a model for storing the data in puppy_tbl
+
+    Args:
+        db (sqlalchemy): SQLAlchemy engine
+    
+    Returns:
+        list: puppy_tbl
+    """
+    
+
+    __tablename__ = "puppy_tbl"
+
+    puppy_id = db.Column(db.Integer, primary_key=True)
+    puppy_name = db.Column(db.String(32), nullable=False)
+    puppy_birthdate = db.Column(db.Date, nullable=False)
+    puppy_breed = db.Column(db.String(32), nullable=False)
+    puppy_gender= db.Column(db.Integer, nullable=False)
+    is_adopted = db.Column(db.Boolean, nullable=False, default=False)
+    owned_by_user_id = db.Column(db.Integer, db.ForeignKey("user_tbl.user_id"), nullable=False)
+
+    user = db.relationship('UserDb', backref='puppies')
+-------------------------------------------
+from flask_marshmallow.fields import fields
+from src.setup_db_example.schemas import ma
+from src.setup_db_example.models.m_user import UserDb
+
+class UserSchema(ma.SQLAlchemySchmena):
+
+    class Meta:
+  
+        model = UserDb
+
+    user_id = fields.Integer()
+    user_name = fields.String()
+    user_email = fields.String()
+    user_password = fields.String()
+    user_address = fields.String()
+-----------------------------------------------------
+from flask_marshmallow.fields import fields
+from src.setup_db_example.schemas import ma
+from src.setup_db_example.models.m_puppy import PuppyDb
+
+
+class PuppySchema(ma.SQLAlchemySchmena):
+ 
+    class Meta:
+  
+        model = PuppyDb
+
+    puppy_id = fields.Integer()
+    puppy_name = fields.String()
+    puppy_birthdate = fields.Integer()
+    puppy_breed = fields.String()
+    puppy_gender= fields.Integer()
+    is_adopted = fields.Boolean()
+    owned_by_user_id= fields.Integer()
+ ---------------------------------------   
+from flask import Blueprint, request
+from src.setup_db_example.models.m_user import UserDb
+
+user_db_router = Blueprint("user_api", __name__)
+
+@user_db_router.route("/api/get-sample", methods=["GET"])
+def sample_read():
+
+    return {
+        "message": "sample",
+    }
+------------------------
+from flask import Blueprint, request
+from src.setup_db_example.models.m_puppy import PuppyDb
+
+
+puppy_db_router = Blueprint("puppy_api", __name__)
+
+@puppy_db_router.route("/api/get-sample", methods=["GET"])
+def sample_read():
+
+    return {
+        "message": "sample",
+    }
