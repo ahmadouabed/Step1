@@ -1,0 +1,181 @@
+from flask import Blueprint, request
+from src.setup_db_example.database import db
+from src.setup_db_example.models.m_recipe import RecipeDb
+from src.setup_db_example.schemas.s_recipe import RecipeSchema
+import traceback
+from pprint import pprint
+from datetime import date
+
+recipe_db_router = Blueprint("a_recipe", __name__)
+
+
+@recipe_db_router.route("/api/add/recipe", methods=["POST"])
+def add_recipe():
+    
+    """Add new recipe
+
+    Returns:
+        dict: return the api response
+    """    
+    try: 
+        req = request.json["params"]
+
+        required_fields = ["name", "description", "ingredient", "instruction"]
+
+        if not req or not all(field in req and req[field] for field in required_fields):
+            return {
+            "success": False,
+            "message_response": "Validation Failed",
+            "message_content": "Missing or empty required fields"
+            }, 400
+
+        new_recipe_data = RecipeDb(
+            recipe_name=req['name'], 
+            recipe_date_posted=date.today(), 
+            recipe_description=req['description'], 
+            recipe_ingredient=req['ingredient'], 
+            recipe_instruction=req['instruction']
+            )
+
+        db.session.add(new_recipe_data)
+        db.session.commit()
+        return{
+            "success": True,
+            "message_response": "NEW RECIPE IS SUCCESSFULLY ADDED",
+            "message_content": "New recipe is added"
+        }, 200
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+            "success": False,
+            "message_response": "NEW RECIPE IS FAILED TO ADD",
+            "message_content": "Failed to add new recipe"
+        }, 500
+
+@recipe_db_router.route("/api/get/recipe", methods=["GET"])
+def get_recipe():
+    """_summary_
+
+    Returns:
+        dict: return api response
+    """    
+    query = RecipeDb.query.all()
+    recipe_lists = RecipeSchema().dump(query)
+
+
+    return {
+            "success": True,
+            "message_response": "ALL RECIPES FETCHED SUCCESSFULLY",
+            "message_content": "All Recipes fetched successfully",
+            "data": recipe_lists
+        }, 200
+
+@recipe_db_router.route("/api/delete/recipe/<int:recipe_id>")
+def delete_recipe(recipe_id):
+    """Delete the specific recipe on the data on the recipe_tbl
+
+    Args:
+        recipe_id (int): reference for the recipe_id that will be used when api is called.
+
+    Returns:
+        dict: return the api response
+    """    
+    try:
+
+        RecipeDb.query.filter(RecipeDb.recipe_id == str(recipe_id)).delete()
+        db.session.commit()
+
+        return {
+            "success": True,
+            "message_response": "RECIPE IS SUCCESSFULLY DELETED",
+            "message_content": "Successfully deleted the recipe"
+            }, 200
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+                "success": False,
+                "message_response": "RECIPE FAILED TO DELETE",
+                "message_content": "Failed to delete"
+        }, 500
+
+@recipe_db_router.route("api/edit/recipe/<int:recipe_id>", method=["PUT"])
+def edit_recipe(recipe_id):
+    """Edit the specific recipe on the data on the recipe_tbl
+
+    Args:
+        recipe_id (int): reference for the recipe_id that will be used when api is called.
+
+    Returns:
+        dict: return the api response
+    """    
+
+    try:
+        req = request.json["params"]
+
+        name=req.get("name")
+        description=req.get("description") 
+        ingredient=req.get("ingredient") 
+        instruction=req.get("instruction")
+
+
+        recipe = RecipeDb.query.get(recipe_id)
+        recipe.recipe_name=name
+        recipe.recipe_description=description
+        recipe.recipe_ingredient=ingredient
+        recipe.recipe_instruction=instruction
+
+        db.session.commit()
+
+        return {
+            "success": True,
+            "message_response": "RECIPE IS SUCCESSFULLY UPDATE",
+            "message_content": "Successfully updated the recipe"
+            }, 200
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+                "success": False,
+                "message_response": "RECIPE FAILED TO UPDATE",
+                "message_content": "Failed to update"
+        }, 500
+
+---------------------
+from src.setup_db_example.database import db
+
+
+
+class RecipeDb(db.Model):
+    """_summary_
+
+    Args:
+        db (_type_): _description_
+    """ 
+    
+    __table_name__ = "recipe_tbl"
+
+    recipe_id = db.column(db.Integer, primary_key=True)
+    recipe_name = db.column(db.String(255), nullable=False, unique=True)
+    recipe_date_posted = db.column(db.Date, nullable=False)
+    recipe_description = db.column(db.Text, nullable=False)
+    recipe_ingredient = db.column(db.Text, nullable=False)
+    recipe_instruction = db.column(db.Text, nullable=False)
+    ----------------------------------
+from src.setup_db_example.models.m_recipe import RecipeDb
+from marshmallow_sqlalchemy import SQLAlchemySchema
+from flask_marshmallow import Marshmallow
+
+ma = Marshmallow()
+
+class RecipeSchema(SQLAlchemySchema):
+    """_summary_
+
+    Args:
+        SQLAlchemySchema (_type_): _description_
+    """
+    class Meta:
+        """_summary_
+        """
+        model = RecipeDb
+        load_instance = True
