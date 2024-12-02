@@ -1,0 +1,619 @@
+from flask import Blueprint, request
+from src.setup_db_example.models.m_student_tbl import Student_Db
+from src.setup_db_example.database import db
+import traceback
+from src.setup_db_example.schemas.s_student_tbl import StudentSchema
+ 
+ 
+student_db_router = Blueprint("student_api", __name__)
+ 
+ 
+@student_db_router.route("/api/register-student", methods=["POST"])
+def register_student():
+    """Add the information of the student in the student_tbl
+ 
+    Returns:
+        dict: return the api response
+    """
+    req = request.json["params"]
+    try:
+        firstname = req["firstname"]
+        middlename = req["middlename"]
+        lastname = req["lastname"]
+        birthday = req["birthday"]
+        gender = req["gender"]
+        phone = req["phone"]
+        level = req["level"]
+        acadyear = req["acadyear"]
+        added_data = Student_Db(
+            student_firstname=firstname,
+            student_middlename=middlename,
+            student_lastname=lastname,
+            student_birthday=birthday,
+            student_gender=gender,
+            student_phone=phone,
+            student_level=level,
+            student_acadyear=acadyear,
+        )
+        db.session.add(added_data)
+        db.session.commit()
+        return {
+            "success": True,
+            "message_response": "REGISTRATION SUCCESSFULLY ADDED",
+            "message_content": "Registrion of student is Successful",
+        }, 200
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+            "success": False,
+            "message_response": "REGISTRATION FAILED",
+            "message_content": "Registeration of student is Failed",
+        }, 500
+ 
+ 
+@student_db_router.route("/api/display-student", methods=["GET"])
+def display_student():
+    """this make the the student information display at the table.
+ 
+    Returns:
+        dict: return the api response
+    """
+    try:
+        query = Student_Db.query.all()
+        print("this is query:", query)
+        student_list = StudentSchema(many=True).dump(query)
+        print(student_list)
+        return {
+            "success": True,
+            "data": student_list,
+            "message_response": "FETCHED SUCCESSFULLY ADDED",
+            "message_content": "Fetched Successfully",
+        }, 200
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+            "success": False,
+            "message_response": "FETCHED FAILED",
+            "message_content": "fetched Failed",
+        }, 500
+ 
+ 
+@student_db_router.route("/api/delete-student/<int:student_id>", methods=["DELETE"])
+def delete_student(student_id):
+    """this delete the student information.
+ 
+    Args:
+        student_id (int): reference for the student ID
+ 
+    Returns:
+        dict: return the api response
+    """
+    try:
+ 
+        if Student_Db.query.filter(Student_Db.id == str(student_id)).delete():
+            db.session.commit()
+        return {
+            "success": True,
+            "message_response": "Student Data deleted successfully",
+            "data": None,
+        }, 200
+ 
+    except Exception as e:
+        print(traceback.format_exc())
+ 
+        return {
+            "success": False,
+            "message_response": f"Failed deleting the Student Data {student_id}",
+            "data": None,
+        }, 500
+ 
+ 
+@student_db_router.route("/api/update-student", methods=["PUT"])
+def update_student():
+    """this is to update the student information
+ 
+    Returns:
+        dict: return the api response
+    """
+    try:
+        req = request.json["params"]
+ 
+        id = req.get("id")
+        students = Student_Db.query.filter_by(id=id).first()
+        print(id)
+ 
+        students.student_firstname = req["firstname"]
+        students.student_middlename = req["middlename"]
+        students.student_lastname = req["lastname"]
+        students.student_birthday = req["birthday"]
+        students.student_gender = req["gender"]
+        students.student_phone = req["phone"]
+        students.student_level = req["level"]
+        students.student_acadyear = req["acadyear"]
+        db.session.commit()
+ 
+        return {
+            "success": True,
+            "message_response": "UPDATE IS SUCCESSFULL",
+            "message_content": "Update is Successfull",
+        }, 200
+ 
+    except Exception as e:
+        print(traceback.format_exc())
+ 
+        return {
+            "success": False,
+            "message_response": "UPDATE FAILED",
+            "message_content": "Update Failed",
+        }, 500
+ 
+ 
+@student_db_router.route("/api/get-student-update/<int:student_id>", methods=["POST"])
+def update_get(student_id):
+    """this is to update the student information
+ 
+    Returns:
+        dict: return the api response
+    """
+    print(111, student_id)
+    try:
+        query_student_info = Student_Db.query.filter_by(id=student_id).first()
+        print(query_student_info)
+        info = {
+            "id": query_puppy_info.id,
+            "name": query_puppy_info.puppy_name,
+            "birthday": query_puppy_info.puppy_birthday,
+            "breed": query_puppy_info.puppy_breed,
+        }
+        return {
+            "success": True,
+            "message_response": "UPDATED SUCCESSFULLY",
+            "message_content": "UPDATED successfully",
+            "data": info,
+        }, 200
+ 
+    except Exception:
+        pass
+ 
+ 
+<template>
+  <div>
+    <b-card class="w-100 p-5 mx-auto main">
+      <div>
+        <h3>THE SCHOOL <img src="../../../assets/theschool_logo.png" alt="" /></h3>
+      </div>
+      <h1 class="m-4">STUDENT REGISTRATION</h1>
+      <!-- REGISTER BUTTON -->
+      <div>
+        <div v-for="register in register_student" :key="register" class="w-25 p-2">
+          <common-button :input="register" @click="regFormButton"></common-button>
+        </div>
+      </div>
+ 
+      <!-- REGISTRATION FORM -->
+      <div v-if="regFormDisplay" class="w-75 p-5 m-4 mx-auto bg-light border-primary regForm">
+        <b-form>
+          <div v-for="form in student_form" :key="form">
+            <common-text-input :input="form" @addValue="studentdateForm"></common-text-input>
+          </div>
+          <div v-for="submit in submit_form" :key="submit" class="w-100 p-2">
+            <common-button :input="submit" @click="registerStudent"></common-button>
+          </div>
+        </b-form>
+      </div>
+      <!--UPDATE FORM-->
+      <div v-if="updateregForm" class="w-75 p-5 m-4 mx-auto bg-light border-primary regForm">
+        <b-form>
+          <div v-for="form in update_student_form" :key="form">
+            <common-text-input
+              :input="form"
+              :value="studentData[form.data.saveAs]"
+              @addValue="studentdateForm"
+            ></common-text-input>
+          </div>
+          <div v-for="update in update_button" :key="update" class="w-100 p-2">
+            <common-button :input="update" @click="updateStudent"></common-button>
+          </div>
+        </b-form>
+      </div>
+ 
+      <!-- TABLE -->
+      <b-table
+        responsive
+        class="text-capitalize text-break"
+        head-variant="dark"
+        striped
+        hover
+        :items="studentList"
+        :fields="fields"
+      >
+        <template #cell(button)="row">
+          <b-button @click="deleteButton(row.item.id)" :key="row.item.id" class="deletebtn"
+            >DELETE</b-button
+          >
+          <b-button @click="updatetheForm(row.item.id)" :key="row.item.id" class="updatebtn"
+            >UPDATE</b-button
+          >
+        </template></b-table
+      >
+    </b-card>
+  </div>
+</template>
+ 
+<script>
+import CommonButton from '@/components/common/CommonButton.vue'
+import { REGISTERSTUDENT, SUBMITFROM, UPDATEFORM } from '@/common/recipe/rCommonButton'
+import CommonTextInput from '@/components/common/CommonTextInput.vue'
+import { REGISTRATIONFORM } from '@/common/recipe/rCommonTextInput'
+import { FetchAPI } from '@/utils/apiRequest'
+export default {
+  name: 'SchoolMain',
+  components: { CommonButton, CommonTextInput },
+ 
+  data() {
+    return {
+      studentList: [],
+      fields: [
+        { key: 'id', label: 'ID' },
+        { key: 'student_firstname', label: 'FIRSTNAME' },
+        { key: 'student_middlename', label: 'MIDDLENAME' },
+        { key: 'student_lastname', label: 'LASTNAME' },
+        { key: 'student_birthday', label: 'BIRTHDAY' },
+        { key: 'student_gender', label: 'GENDER' },
+        { key: 'student_phone', label: 'PHONENUMBER' },
+        { key: 'student_level', label: 'LEVEL' },
+        { key: 'student_acadyear', label: 'ACADEMIC YEAR' },
+        { key: 'button', label: 'ACTION' }
+      ],
+      register_student: REGISTERSTUDENT,
+      student_form: REGISTRATIONFORM,
+      update_student_form: [],
+      submit_form: SUBMITFROM,
+      update_button: UPDATEFORM,
+      studentData: {
+        firstname: '',
+        middlename: '',
+        lastname: '',
+        birthday: '',
+        gender: '',
+        phone: '',
+        level: '',
+        acadyear: ''
+      },
+      regFormDisplay: false,
+      updateregForm: false
+    }
+  },
+  mounted() {
+    this.getStudentList()
+  },
+  methods: {
+    /**
+     * This function assign the values of the data
+     * @param data - contains the data and key.
+     */
+    studentdateForm(data) {
+      console.log('this.studentData[data.key]', data)
+      this.studentData[data.key] = data.value
+    },
+    /**
+     * This is to get the data of the registration.
+     */
+    async registerStudent() {
+      try {
+        const api = new FetchAPI()
+        await api.post('/api/register-student', this.studentData)
+ 
+        alert('Student registered successfully!')
+        this.getStudentList()
+      } catch (error) {
+        console.log(error)
+      }
+    },
+    /**
+     * This is to get the student information to display it information.
+     */
+    async getStudentList() {
+      try {
+        const response = await new FetchAPI().get('/api/display-student', {})
+        this.studentList = [...response.data]
+        console.log('STUDENT LIST', this.studentList)
+        this.reset()
+      } catch (error) {
+        console.log(error)
+      }
+    },
+ 
+    /**
+     * This is to delete the data of the student.
+     * @param student_id - this the the id of the student.
+     */
+    async deleteButton(student_id) {
+      const delVal = confirm('Are you sure you want to delete this data?')
+      if (delVal) {
+        try {
+          const response = await new FetchAPI().delete(`/api/delete-student/${student_id}`)
+          console.log(response)
+          this.getStudentList()
+          alert('Student data deleted successfully!')
+        } catch (error) {
+          console.log(error)
+        }
+      }
+    },
+ 
+    /**
+     * This function is to update the information of the student.
+     */
+    async updateStudent() {
+      try {
+        this.studentList.forEach((element) => {
+          if (element['lastname'] === this.studentData['lastname']) {
+            this.studentData.id = element.id
+          }
+        })
+        const api = new FetchAPI()
+        const response = await api.put('/api/update-student', this.studentData)
+        // this.registerStudent()
+        alert('Update successfully!')
+      } catch (error) {
+        console.log(error)
+      }
+    },
+ 
+    /**
+     * This is to display the registration form when you click the button.
+     */
+    regFormButton() {
+      this.regFormDisplay = !this.regFormDisplay
+    },
+ 
+    /**
+     * This is to get the information of the student when you will update their information.
+     * @param student_id - It is the id of the student.
+     */
+    updatetheForm(student_id) {
+      this.studentList.forEach((element) => {
+        if (element.id === student_id) {
+          this.update_student_form = [
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'firstname',
+                value: element.student_firstname
+              },
+              directives: {
+                type: 'text',
+                class: 'text-input ',
+                maxlength: 60,
+                readonly: false
+              },
+              display: {
+                label: 'First Name:',
+                labelFor: 'firstname'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'middlename',
+                value: element.student_middlename
+              },
+              directives: {
+                type: 'text',
+                class: 'text-input ',
+                readonly: false,
+                maxlength: 60
+              },
+              display: {
+                label: 'Middle Name:',
+                labelFor: 'middlename'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'lastname',
+                value: element.student_lastname
+              },
+              directives: {
+                type: 'text',
+                class: 'text-input ',
+                maxlength: 60,
+                readonly: false
+              },
+              display: {
+                label: 'Last Name:',
+                labelFor: 'lastname'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'birthday',
+                value: element.student_birthday
+              },
+              directives: {
+                type: 'date',
+                class: 'text-input ',
+                readonly: false
+              },
+              display: {
+                label: 'Birthday:',
+                labelFor: 'birthday'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'gender',
+                value: element.student_gender
+              },
+              directives: {
+                type: 'text',
+                class: 'text-input ',
+                readonly: false,
+                maxlength: 10
+              },
+              display: {
+                label: 'Gender:',
+                labelFor: 'gender'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'phone',
+                value: element.student_phone
+              },
+              directives: {
+                type: 'tel',
+                class: 'text-input ',
+                maxlength: 11,
+                readonly: false
+              },
+              display: {
+                label: 'Phone Number:',
+                labelFor: 'phone'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'level',
+                value: element.student_level
+              },
+              directives: {
+                type: 'num',
+                class: 'text-input ',
+                readonly: false,
+                maxlength: 30
+              },
+              display: {
+                label: 'Level:',
+                labelFor: 'level'
+              },
+              event: {}
+            },
+            {
+              componentName: 'commonTextInput',
+              data: {
+                saveAs: 'acadyear',
+                value: element.student_acadyear
+              },
+              directives: {
+                type: 'date',
+                class: 'text-input ',
+                readonly: false
+              },
+              display: {
+                label: 'Academic Year:',
+                labelFor: 'acadyear'
+              },
+              event: {}
+            }
+          ]
+        }
+      })
+      this.updateregForm = !this.updateregForm
+    },
+ 
+    /**
+     * This is to see if the registration button is working.
+     */
+    registerButton(studentData) {
+      console.log('Student Succesfully Added', studentData)
+    },
+ 
+    /**
+     * This is to reset the form.
+     */
+    reset() {
+      this.studentData.firstname = ''
+      this.studentData.middlename = ''
+      this.studentData.lastname = ''
+      this.studentData.birthday = ''
+      this.studentData.gender = ''
+      this.studentData.phone = ''
+      this.studentData.level = ''
+      this.studentData.acadyear = ''
+    }
+  }
+}
+</script>
+ 
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+ 
+html {
+  background: rgb(157, 191, 134);
+  background: radial-gradient(circle, rgba(157, 191, 134, 1) 0%, rgba(79, 125, 76, 1) 100%);
+}
+ 
+.main {
+  border: none;
+ 
+  background: rgb(157, 191, 134);
+  background: radial-gradient(circle, rgba(157, 191, 134, 1) 0%, rgba(79, 125, 76, 1) 100%);
+  padding: 100%;
+}
+ 
+h1 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 800;
+  font-size: 52px;
+  color: black;
+}
+ 
+h3 {
+  font-family: 'Rubik', sans-serif;
+  font-weight: 800;
+  color: black;
+  text-decoration: underline;
+}
+ 
+img {
+  width: 45px;
+}
+ 
+.regForm {
+  margin-bottom: 10px;
+  border: none;
+  box-shadow:
+    rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+}
+ 
+.updatebtn {
+  width: 100px;
+  font-size: 14px;
+  margin-right: 10px;
+  background-color: #7eacb5;
+  font-weight: 800;
+  border: none;
+  box-shadow:
+    rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
+    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+}
+ 
+.deletebtn {
+  background-color: #af1740;
+  width: 100px;
+  font-size: 14px;
+  font-weight: 800;
+  margin-right: 10px;
+  border: none;
+  box-shadow:
+    rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
+    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+}
+</style>
+ 
+ 
