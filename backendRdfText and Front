@@ -1,0 +1,576 @@
+import os
+from flask import Flask, Blueprint
+from flask_cors import CORS 
+from src.setup_db_example.database import initialize_database
+from src.setup_db_example.api.a_recipe import recipe_db_router
+from src.setup_db_example.admin import admin_init
+
+
+def initialize_routing(app):
+    
+    @app.route("/")
+    @app.route("/<path>")
+    def hello_world(path=""):
+        return app.redirect(f"http://localhost:8080/{path}")
+    
+    @app.route("/api/test/<path>", methods=["GET"] )
+    def test(path):
+        print("GASDFASDFASDFASDF", path)
+        return "success", 200
+
+def create_app():
+    app = Flask(__name__)
+    CORS(app)
+    
+   
+    initialize_database(app)
+    admin_init(app)
+    # Setup Database
+    app.register_blueprint(recipe_db_router)
+
+    # Flask Routing
+    initialize_routing(app)
+    return app
+
+# Not necessary because the command is in the docker file
+# app.run(host="0.0.0.0", port=5000) 
+
+---------------
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql import text
+from flask_migrate import Migrate, upgrade, init
+from time import sleep
+import os
+
+# Create instances of SQLAlchemy and Migrate
+db = SQLAlchemy()
+migrate = Migrate()
+
+
+def initialize_database(app):
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db-nexus_app:5432/db_nexus_app")
+    app.config["DEBUG"] = True
+    # app.config["SQLALCHEMY_BINDS"] = {"db2": "postgresql://postgres:postgres@db-nexus_app2:5432/db_nexus_app2"}
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # Import your models here so they are registered with SQLAlchemy
+    from src.setup_db_example.models.m_recipe import RecipeDb
+
+    sleep(2)  # wait for 2 seconds for the TCP to be initialized
+
+    if not os.path.isdir("/usr/opt/nexus-app/backend/migrations"):
+        init()
+    print("Alembic Migration Initialized")
+    __upgrade_database__(app)
+
+
+def __upgrade_database__(app):
+    with app.app_context():
+        upgrade()
+        print("Database upgraded successfully.")
+      --------------------
+
+from flask import Blueprint, request
+from src.setup_db_example.database import db
+from src.setup_db_example.models.m_recipe import RecipeDb
+from src.setup_db_example.schemas.s_recipe import RecipeSchema
+import traceback
+from pprint import pprint
+from datetime import date
+from sqlalchemy import desc
+
+recipe_db_router = Blueprint("a_recipe", __name__)
+
+
+@recipe_db_router.route("/api/recipe", methods=["POST"])
+def add_recipe():
+    
+    """Add new recipe
+
+    Returns:
+        dict: return the api response
+    """    
+    try: 
+        req = request.json["params"]
+
+        required_fields = ["name", "description", "ingredient", "instruction"]
+
+        if not req or not all(field in req and req[field] for field in required_fields):
+            return {
+            "success": False,
+            "message_response": "Validation Failed",
+            "message_content": "Missing or empty required fields"
+            }, 400
+
+        new_recipe_data = RecipeDb(
+            recipe_name=req['name'], 
+            recipe_date_posted=date.today(), 
+            recipe_description=req['description'], 
+            recipe_ingredient=req['ingredient'], 
+            recipe_instruction=req['instruction']
+            )
+
+        db.session.add(new_recipe_data)
+        db.session.commit()
+
+        return{
+            "success": True,
+            "message_response": "NEW RECIPE IS SUCCESSFULLY ADDED",
+            "message_content": "New recipe is added"
+        }, 200
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+            "success": False,
+            "message_response": "NEW RECIPE IS FAILED TO ADD",
+            "message_content": "Failed to add new recipe"
+        }, 500
+
+@recipe_db_router.route("/api/recipes", methods=["GET"])
+def get_recipe():
+    """Get all the data from the recipe_tbl
+
+    Returns:
+        dict: return api response
+    """    
+    query = RecipeDb.query.order_by(desc(RecipeDb.recipe_id)).all()
+    recipe_lists = []
+
+    for data in query:
+        formDate = data.recipe_date_posted.strftime("%b %d %Y")
+
+        recipe_dict = {
+            "id":data.recipe_id, 
+            "name": data.recipe_name, 
+            "date": formDate,
+            "description": data.recipe_description,
+            "ingredient": data.recipe_ingredient, 
+            "instruction": data.recipe_instruction, 
+        }
+
+        recipe_lists.append(recipe_dict)
+
+    return {
+            "success": True,
+            "message_response": "ALL RECIPES FETCHED SUCCESSFULLY",
+            "message_content": "All Recipes fetched successfully",
+            "data": recipe_lists
+        }, 200
+
+@recipe_db_router.route("/api/delete/<int:recipe_id>", methods=["DELETE"])
+def delete_recipe(recipe_id):
+    """Delete the specific recipe on the data on the recipe_tbl
+
+    Args:
+        recipe_id (int): reference for the recipe_id that will be used when api is called.
+
+    Returns:
+        dict: return the api response
+    """    
+    try:
+
+        RecipeDb.query.filter(RecipeDb.recipe_id == str(recipe_id)).delete()
+        db.session.commit()
+
+        return {
+            "success": True,
+            "message_response": "RECIPE IS SUCCESSFULLY DELETED",
+            "message_content": "Successfully deleted the recipe"
+            }, 200
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+                "success": False,
+                "message_response": "RECIPE FAILED TO DELETE",
+                "message_content": "Failed to delete"
+        }, 500
+
+@recipe_db_router.route("/api/edit/<int:recipe_id>", methods=["PUT"])
+def update_recipe(recipe_id):
+    """Edit the specific recipe on the data on the recipe_tbl
+
+    Args:
+        recipe_id (int): reference for the recipe_id that will be used when api is called.
+
+    Returns:
+        dict: return the api response
+    """    
+
+    try:
+        req = request.json["params"]
+
+        name=req.get("name")
+        description=req.get("description") 
+        ingredient=req.get("ingredient") 
+        instruction=req.get("instruction")
+
+
+        recipe = RecipeDb.query.get(recipe_id)
+        recipe.recipe_name=name
+        recipe.recipe_description=description
+        recipe.recipe_ingredient=ingredient
+        recipe.recipe_instruction=instruction
+
+        db.session.commit()
+
+        return {
+            "success": True,
+            "message": "RECIPE IS SUCCESSFULLY UPDATE",
+            "message_content": "Successfully updated the recipe"
+            }, 200
+
+    except Exception as e:
+        print(traceback.format_exc())
+        return {
+                "success": False,
+                "message_response": "RECIPE FAILED TO UPDATE",
+                "message_content": "Failed to update"
+        }, 500
+
+------------------------
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
+
+from src.setup_db_example.database import db
+
+# NOTE: Import the Models
+from src.setup_db_example.models.m_recipe import RecipeDb
+
+
+class ExportableModelView(ModelView):
+    """Export対応ModelView"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.can_export = True
+
+
+def admin_init(app):
+    """flask-admin初期化
+
+    Args:
+        app (Flask): flaskアプリケーション
+    """
+    admin = Admin(app, url="/vsf_db/admin")
+    admin.add_view(ExportableModelView(RecipeDb, db.session))
+
+
+-----------------
+
+
+<template>
+  <b-container>
+    <h1 class="text-center my-4">Savor the flavors with incredible recipe!</h1>
+    <b-row class="pb-3">
+      <b-col class="py-2" v-for="btn in BUTTON" :key="btn.id"
+        ><common-button :is="btn.componentName" :input="btn" :key="btn.id" @action="openModal">
+          {{ btn.display.label }}
+        </common-button>
+      </b-col>
+    </b-row>
+
+    <b-modal
+      v-model="showAddModal"
+      header-bg-variant="info"
+      header-text-variant="light"
+      @close="clearAddModal"
+      no-close-on-backdrop
+      hide-footer
+      centered
+      title="Add Recipe"
+    >
+      <b-form @submit.prevent="addRecipe">
+        <div v-for="item in items" :key="item.id">
+          <component
+            :is="item.componentName"
+            :key="componentKey"
+            :input="item"
+            @formData="addFormData"
+            >{{ item.display.label }}</component
+          >
+        </div>
+      </b-form>
+    </b-modal>
+
+    <b-modal
+      v-model="showEditModal"
+      header-bg-variant="info"
+      header-text-variant="light"
+      no-close-on-backdrop
+      hide-footer
+      centered
+      title="Update Recipe"
+      @close="clearEditModal"
+    >
+      <b-form @submit.prevent="updateRecipe">
+        <div v-for="item in itemsEdit" :key="item.id">
+          <component :is="item.componentName" :key="itemKey" :input="item" @formData="editFormData"
+            >{{ item.display.label }}
+          </component>
+        </div>
+      </b-form>
+    </b-modal>
+
+    <b-card v-for="recipe in recipes" :key="recipe" class="my-2" :title="recipe.name">
+      <recipe-details :details="recipe"></recipe-details>
+      <b-row>
+        <b-col>
+          <b-button class="w-100 my-2" variant="warning" @click="editRecipe(recipe)"
+            >Edit Details</b-button
+          >
+          <b-button class="w-100 my-2" variant="danger" @click="deleteRecipe(recipe.id)"
+            >Delete</b-button
+          >
+        </b-col>
+      </b-row>
+      <small class="text-muted">Posted Date: {{ recipe.date }}</small>
+    </b-card>
+
+    <b-card v-show="recipes.length === 0"
+      >No Posted Recipe, Click the 'Add New Recipe' to add new recipe.
+    </b-card>
+  </b-container>
+</template>
+
+<script>
+import { RECIPE_EDIT_PROPERTIES, RECIPE_MANAGER_PROPERTIES } from '@/common/recipe/rRecipeManager'
+import { RECIPE_BUTTON } from '@/common/recipe/rButton'
+import { FetchAPI } from '@/utility/apiRequest'
+import CommonLabel from '@/components/common/CommonLabel.vue'
+import CommonTextArea from '@/components/common/CommonTextArea.vue'
+import CommonTextInput from '@/components/common/CommonTextInput.vue'
+import CommonButton from '@/components/common/CommonButton.vue'
+import RecipeDetails from './RecipeDetails.vue'
+
+export default {
+  components: {
+    CommonTextArea,
+    CommonLabel,
+    CommonTextInput,
+    CommonButton,
+    RecipeDetails
+  },
+  data() {
+    return {
+      items: [...RECIPE_MANAGER_PROPERTIES],
+      itemsEdit: [...RECIPE_EDIT_PROPERTIES],
+      BUTTON: [...RECIPE_BUTTON],
+
+      button: 'Add Recipe',
+      inputData: {
+        name: '',
+        description: '',
+        ingredient: '',
+        instruction: ''
+      },
+      editData: {
+        name: '',
+        description: '',
+        ingredient: '',
+        instruction: ''
+      },
+      showAddModal: false,
+      showEditModal: false,
+      recipes: [],
+      selectedRecipe: null,
+      componentKey: 0,
+      itemKey: 0
+    }
+  },
+  mounted() {
+    this.fetchRecipe()
+  },
+  methods: {
+    /**
+     * Function use for adding the data value from specific data
+     * @param {Object} data - assign and get the key and value variable
+     */
+    addFormData(data) {
+      this.inputData[data.key] = data.value
+    },
+    /**
+     * Function use for editing the data value from specific data
+     * @param {Object} data - assign and get the key and value variable
+     */
+    editFormData(data) {
+      this.editData[data.key] = data.value
+    },
+    /**
+     * Function use for opening the add modal
+     */
+    openModal() {
+      this.showAddModal = true
+    },
+    /**
+     * Function use for opening the modal for editing
+     * @param {number} recipe_id -  use for referencing the seleted puppy
+     */
+    editRecipe(recipe_id) {
+      this.showEditModal = !this.showEditModal
+      this.selectedRecipe = recipe_id
+      this.getRecipeDetails()
+    },
+    /**
+     * Function use for getting the current value of the recipe
+     */
+    getRecipeDetails() {
+      this.editData.name = this.selectedRecipe?.name
+      this.editData.description = this.selectedRecipe?.description
+      this.editData.ingredient = this.selectedRecipe?.ingredient
+      this.editData.instruction = this.selectedRecipe?.instruction
+    },
+    /**
+     * Function use to add new recipe to the database from the modal form
+     */
+    async addRecipe() {
+      const api = new FetchAPI()
+      const response = await api.post('/api/recipe', this.inputData)
+      if (response.success) {
+        alert('New Recipe Added')
+        this.resetInputData()
+        this.fetchRecipe()
+        this.showAddModal = false
+      }
+    },
+    /**
+     * Function use to display the data from the recipe_tbl
+     */
+    async fetchRecipe() {
+      try {
+        const api = new FetchAPI()
+        const response = await api.get('/api/recipes')
+        if (response.success) {
+          this.recipes = [...response.data]
+        }
+      } catch (err) {
+        console.log(err)
+      }
+    },
+    /**
+     * Function use to delete specific recipe
+     */
+    async deleteRecipe(recipe_id) {
+      const confirmDelete = confirm('Do you want to delete this recipe?')
+      if (confirmDelete) {
+        const api = new FetchAPI()
+        await api.delete(`/api/delete/${recipe_id}`)
+        alert('Recipe is successfully deleted')
+        this.fetchRecipe()
+      }
+    },
+    /**
+     * Function use for editing specific details of recipe
+     */
+    async updateRecipe() {
+      const editData = this.editData
+      const validation =
+        editData.name.trim() === '' ||
+        editData.description.trim() === '' ||
+        editData.ingredient.trim() === '' ||
+        editData.instruction.trim() === ''
+      if (validation) {
+        alert("Can't update if blank spaces are inputted")
+        return
+      }
+
+      try {
+        const api = new FetchAPI()
+        const response = await api.put(`/api/edit/${this.selectedRecipe.id}`, this.editData)
+        if (response.success) {
+          alert(response.message_content)
+          this.fetchRecipe()
+          this.resetEditForm()
+          this.showEditModal = false
+        } else {
+          alert('Failed to Update Recipe')
+        }
+      } catch (err) {
+        console.log(err)
+      }
+    },
+    /**
+     * Function use for resetting the form
+     */
+    resetInputData() {
+      const inputData = this.inputData
+      inputData.name = ''
+      inputData.description = ''
+      inputData.ingredient = ''
+      inputData.instruction = ''
+      this.componentKey++
+    },
+    /**
+     * Function use for clear the modal when close
+     */
+    clearAddModal() {
+      this.resetInputData()
+    },
+    /**
+     * Function use for  resetting the edit form
+     */
+    resetEditForm() {
+      const editData = this.editData
+      editData.name = ''
+      editData.description = ''
+      editData.ingredient = ''
+      editData.instruction = ''
+      this.itemKey++
+    },
+    /**
+     * Function use for  closing the edit form
+     */
+    clearEditModal() {
+      this.resetEditForm()
+    }
+  }
+}
+</script>
+
+-------------------------------
+<template>
+  <div>
+    <b-card-text v-for="[key, value] in Object.entries(detailsData)" :key="key"
+      ><strong>{{ key }}: </strong>{{ value }}</b-card-text
+    >
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'RecipeDetails',
+  /**
+   * Use for the passing the object data from the RecipeDetails to RecipeManager
+   * @description
+   * Receives data object
+   * @object:
+   * - value {any} - any data from the parent component
+   * - key {string} - any key reference for the attribute of data value
+   */
+  props: {
+    details: {
+      type: Object,
+      required: true
+    }
+  },
+  computed: {
+    /**
+     * Computed Function for giving specific description
+     */
+    detailsData() {
+      return {
+        'Recipe Description': this.details.description,
+        'Main Ingredients': this.details.ingredient,
+        'Recipe Instruction': this.details.instruction
+      }
+    }
+  }
+}
+</script>
+
+
+
