@@ -1,0 +1,237 @@
+const RECIPE_MANAGER_PROPERTIES = [
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Recipe Name'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextInput',
+    data: {
+      saveAs: 'name'
+    },
+    directives: {
+      type: 'text',
+      readOnly: false,
+      maxlength: 128,
+      placeholder: 'Enter Recipe Name',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Recipe Description'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextArea',
+    data: {
+      saveAs: 'description'
+    },
+    directives: {
+      placeholder: 'Write a short description of the recipe',
+      row: '3',
+      maxRows: '4',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Main Ingredients'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextArea',
+    data: {
+      saveAs: 'ingredient'
+    },
+    directives: {
+      placeholder: 'Write the main ingredients of the recipe',
+      row: '3',
+      maxRows: '4',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Recipe Instruction'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextArea',
+    data: {
+      saveAs: 'instruction'
+    },
+    directives: {
+      placeholder: 'Write a short instructions how to cook the recipe',
+      row: '3',
+      maxRows: '4',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonButton',
+    directives: { variant: 'success', class: 'w-100 my-2', type: 'submit' },
+    display: { label: 'Add Recipe' },
+    event: {}
+  }
+]
+
+const RECIPE_EDIT_PROPERTIES = [
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Recipe Name'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextInput',
+    data: {
+      saveAs: 'name'
+    },
+    directives: {
+      type: 'text',
+      readOnly: false,
+      maxlength: 128,
+      placeholder: 'Enter Recipe Name',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Recipe Description'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextArea',
+    data: {
+      saveAs: 'description'
+    },
+    directives: {
+      placeholder: 'Write a short description of the recipe',
+      row: '3',
+      maxRows: '4',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Main Ingredients'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextArea',
+    data: {
+      saveAs: 'ingredient'
+    },
+    directives: {
+      placeholder: 'Write the main ingredients of the recipe',
+      row: '3',
+      maxRows: '4',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonLabel',
+    data: {},
+    directives: {
+      style: {
+        fontWeight: 'bold'
+      }
+    },
+    display: {
+      label: 'Recipe Instruction'
+    },
+    event: {}
+  },
+  {
+    componentName: 'CommonTextArea',
+    data: {
+      saveAs: 'instruction'
+    },
+    directives: {
+      placeholder: 'Write a short instructions how to cook the recipe',
+      row: '3',
+      maxRows: '4',
+      class: 'my-2'
+    },
+    display: {},
+    event: {}
+  },
+  {
+    componentName: 'CommonButton',
+    directives: { variant: 'success', class: 'w-100 my-2', type: 'submit' },
+    display: { label: 'Edit Recipe' },
+    event: {}
+  }
+]
+
+export { RECIPE_MANAGER_PROPERTIES, RECIPE_EDIT_PROPERTIES }
