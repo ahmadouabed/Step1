@@ -1,0 +1,156 @@
+from src.setup_db_example.models.m_operation_information import OperationInformationDb
+from src.setup_db_example.database import db
+from src.setup_db_example.schemas.s_operation_information import OperationInformationSchema
+from flask import Blueprint
+from pprint import pprint
+import traceback
+
+operation_information_router = Blueprint("a_operation_", __name__)
+
+@operation_information_router.route("/api/get-coordinates", methods=["GET"])
+def get_coordinates():
+    """Fetch all the coordinates
+
+    Returns:
+        dict: return the api response
+    """   
+
+    query = OperationInformationDb.query.all()
+    schema = OperationInformationSchema(many=True).dump(query)
+
+    print(query)
+    print(schema)
+    operation_data = []
+
+    for data in schema:
+    
+
+            # operation_data_dict = {
+            #     "process_id": data.get('process_id'),
+            #     "operation_status": data.get('operation_status'),
+            #     "x": data.get('coordinates_id').get('x_position'),
+            #     "y": data.get('coordinates_id').get('y_position'),
+            #     "width": data.get('coordinates_id').get('width'),
+            #     "height": data.get('coordinates_id').get('height')
+            # }
+
+            operation_data_dict = {
+                "process_id": data.process_id,
+                "operation_status": data.operation_status,
+                "x": data.coordinates.x_position,
+                "y": data.coordinates.y_position,
+                "width": data.coordinates.width,
+                "height": data.coordinates.height
+            }
+
+            operation_data.append(operation_data_dict)
+
+            
+            return{
+                "success": True,
+                "message_response": "COORDINATES FETCHED SUCCESSFULLY",
+                "message_content": "COORDINATES fetched successfully",
+                "data": operation_data
+        }, 200
+---------------------
+
+ File "/usr/local/lib/python3.9/site-packages/flask_cors/extension.py", line 165, in wrapped_function
+    return cors_after_request(app.make_response(f(*args, **kwargs)))
+  File "/usr/local/lib/python3.9/site-packages/flask/app.py", line 1821, in handle_user_exception
+    reraise(exc_type, exc_value, tb)
+  File "/usr/local/lib/python3.9/site-packages/flask/_compat.py", line 39, in reraise
+    raise value
+  File "/usr/local/lib/python3.9/site-packages/flask/app.py", line 1950, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/local/lib/python3.9/site-packages/flask/app.py", line 1936, in dispatch_request
+    return self.view_functions[rule.endpoint](**req.view_args)
+  File "/usr/opt/nexus-app/backend/src/setup_db_example/api/a_operation_information.py", line 38, in get_coordinates
+    "process_id": data.process_id,
+AttributeError: 'dict' object has no attribute 'process_id'
+
+----------------------
+from src.setup_db_example.database import db
+
+class CoordinatesDb(db.Model):
+    """Represents a model for storing the data in coordinates_tbl
+
+    Args:
+        db (sqlalchemy): SQLAlchemy engine
+    """
+
+    __tablename__ = "coordinates_tbl"
+    coordinates_id = db.Column(db.Integer, primary_key=True)
+    x_position = db.Column(db.Integer, nullable=False)
+    y_position = db.Column(db.Integer, nullable=False)
+    width = db.Column(db.Integer, nullable=False)
+    height = db.Column(db.Integer, nullable=False)
+    operation_information = db.relationship('OperationInformationDb', back_populates='coordinates')
+
+------------
+from src.setup_db_example.database import db
+
+class OperationInformationDb(db.Model):
+    """Represents a model for storing the data in operation_information_tbl
+
+    Args:
+        db (sqlalchemy): SQLAlchemy engine
+    """
+
+    __tablename__ = "operation_information_tbl"
+    process_id = db.Column(db.Integer, primary_key=True)
+    process_name = db.Column(db.String(128), nullable=False)
+    operation_status = db.Column(db.Integer, nullable=False)
+    product_number = db.Column(db.Integer, nullable=False)
+    facility_cycle_time = db.Column(db.Float(3), nullable=False)
+    coordinates_id = db.Column(db.Integer, db.ForeignKey("coordinates_tbl.coordinates_id"), nullable=False)
+    coordinates = db.relationship('CoordinatesDb', back_populates="operation_information")
+
+--------
+from src.setup_db_example.models.m_coordinates import CoordinatesDb
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from flask_marshmallow import Marshmallow
+
+ma = Marshmallow()
+
+
+class CoordinatesSchema(SQLAlchemyAutoSchema):
+    """
+    This class positions schema with the corresponding db table model
+
+    Args:
+        SQLAlchemySchema (sqlalchemy): SQLAlchemy engine
+    """
+    class Meta:
+        """Meta Class
+        """
+
+        model = CoordinatesDb
+        Load_instance = True       
+
+------
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from flask_marshmallow import Marshmallow
+from src.setup_db_example.models.m_operation_information import OperationInformationDb
+from src.setup_db_example.schemas.s_coordinates import CoordinatesSchema
+
+ma = Marshmallow()
+
+
+class OperationInformationSchema(SQLAlchemyAutoSchema):
+    """
+    This class positions schema with the corresponding db table model
+
+    Args:
+        SQLAlchemySchema (sqlalchemy): SQLAlchemy engine
+    """
+
+    class Meta:
+        """Meta Class
+        """    
+
+
+        model = OperationInformationDb
+        load_instance = True
+        include_relationship = True
+
+    ma.Nested(CoordinatesSchema)
